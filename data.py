@@ -2469,6 +2469,7 @@ ALL_PMIDS=[111448,
 
 import pubchempy as pcp
 import json
+import pandas as pd
 cid_synonym_map = dict()
 def get_all_synonyms(write=False):
     for cid in sorted(UNIQUE_CIDS):
@@ -2486,5 +2487,17 @@ def read_all_synonyms():
         asdff = json.load(f)
     print(asdff)
 
+def output_excel_for_scrubs():
+    with open('cid_synonym_map.json','r') as f:
+        asdff = json.load(f)
+    dumb = dict()
+    for k,v in asdff.items():
+        dumb[k] = '\t'.join(v)
+    df = pd.DataFrame(asdff.items(), columns=['cid','synonyms'])
+    df.to_excel('./excel_sucks.xlsx')
+
+
+
 #get_all_synonyms()
-read_all_synonyms()
+#read_all_synonyms()
+output_excel_for_scrubs()
