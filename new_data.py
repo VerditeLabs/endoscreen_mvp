@@ -2847,7 +2847,7 @@ def cas_to_cid():
     import easy_entrez
     from easy_entrez.parsing import xml_to_string
     all_cids = set()
-
+    leftover_cas = set()
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
         'verditelabs@gmail.com',
@@ -2856,33 +2856,15 @@ def cas_to_cid():
     )
     import time
     for cas in all_cas:
-        time.sleep(1)
+        time.sleep(.1)
         chem = entrez_api.search(cas, max_results = 10, database='pccompound')
         cid = chem.data['esearchresult']['idlist']
-        #if len(cid) > 1:
-        #    print(cid)
-        all_cids.update(cid)
-        print(cas,cid)
-    print(all_cids)
-    print(all_cids)
-
-def find_duplicates():
-    import pubchempy as pcp
-    out_cids = set()
-    found_cas = set()
-    for cid in all_cids:
-        synonyms = pcp.Compound.from_cid(cid).synonyms
-        asdf = list(filter(lambda x: x in all_cas, synonyms))
-        if len(asdf) > 1:
-            # the CID has a CAS match
-            out_cids.add(cid)
-            found_cas.update(set(asdf))
+        if len(cid) == 0:
+            leftover_cas.add(cas)
         else:
-            print()
+            all_cids.update(cid)
+        print(cas,cid)
+    print("all cids", all_cids)
+    print("leftover cids", leftover_cas)
 
-        print(asdf)
-    print("all cids", out_cids)
-    print("leftover CAS", set(all_cas) - found_cas)
-
-#find_duplicates()
 cas_to_cid()
