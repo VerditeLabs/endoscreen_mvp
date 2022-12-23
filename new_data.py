@@ -1,3 +1,5 @@
+import time
+
 all_cids = [135,
 174,
 177,
@@ -2867,4 +2869,31 @@ def cas_to_cid():
     print("all cids", all_cids)
     print("leftover cids", leftover_cas)
 
-cas_to_cid()
+def find_literature(common_name):
+    import easy_entrez
+    entrez_api = easy_entrez.EntrezAPI(
+        'endoscreen',
+        'verditelabs@gmail.com',
+        # optional
+        return_type='json'
+    )
+
+    for name in common_name:
+        time.sleep(.1)
+        res = entrez_api.search(name + ' AND endocrine', max_results=100, database='pubmed')
+
+def get_common_names():
+    import pubchempy as pcp
+    all_names = set()
+    with open('all_cids2.txt','r') as f:
+        for line in f:
+            line = line.strip().replace('CID:','')
+            cid = int(line)
+            chem = pcp.Compound.from_cid(cid)
+            print(chem.iupac_name)
+            all_names.add(chem.iupac_name)
+    print("all names",all_names)
+
+
+#cas_to_cid()
+get_common_names()
