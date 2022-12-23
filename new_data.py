@@ -2898,6 +2898,12 @@ def find_literature():
     with open('name_to_pmids.json', 'w') as f:
         f.write(json.dumps(out))
 
+def contains_lowercase(s):
+    for c in s:
+        if ord('a') <= ord(c) <= ord('z'):
+            return True
+    return False
+
 def get_common_names():
     import pubchempy as pcp
     all_names = set()
@@ -2910,7 +2916,42 @@ def get_common_names():
             all_names.add(chem.iupac_name)
     print("all names",all_names)
 
+def sanitize_synonyms():
+    # synonyms be crazy, let's process them some
+    banned_terms = [
+        '[', ']', '%','>','=','<',';','{','}' #filter out weird punctuation stuff
+        'CAS','CCRIS','CHEBI','CHEMBL','DSSTox','NCGC','NSC','NCI', # other identifiers?
+        'Caswell','MLS','MFCD','STL','Tox','bmse','EINECS','ENT','ZINC',
+        'UNII','VS-','WLN','BDBM','CCG','CS','_',
+        'British','European','antibiotic','KBio','BPBio','Spectrum',
+        'Prestwick','component','reference','ampule','injectable',
+        'reagent','powder','tested','mg/mL','FEMA','BSPBio','United States','mixture',
+        '(VAN)','(1:1)','/mL','byproduct','EPA','Standard','(TN)','german','indicator',
+        'biological','Commission','Pesticide','RCRA','(R)','TraceCERT','(alpha)','(INN)',
+        '.beta.','.alpha.','diameter','length','elemental','metallic','g/g','/','GRADE',
+        'Nanopowder','Dispersion','Powder','dia','unpurified','#','ACon','Lopac','MEGxp',
+        'Biomo','KBio','(TBB)','Reference','Handbook','Epitope','Rcra'
+    ]
+
+    names = None
+    processed_names = dict()
+    with open('cid_synonym_map.json','r') as f:
+        names = json.load(f)
+    for k,v in names.items():
+        keep = set()
+        for synonym in v:
+            asdf = [term in synonym for term in banned_terms]
+            if any(term in synonym for term in banned_terms):
+                continue
+            if not contains_lowercase(synonym):
+                continue
+            keep.add(synonym)
+        processed_names[k] = sorted(list(keep))
+    with open('processed_synonyms.json','w') as f:
+        json.dump(processed_names,f)
+
 
 #cas_to_cid()
 #get_common_names()
-find_literature()
+#find_literature()
+sanitize_synonyms()
