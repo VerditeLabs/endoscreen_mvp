@@ -2895,8 +2895,8 @@ def find_literature():
             print(name, summary.data['result']['uids'])
             out[name] = summary.data['result']['uids']
     import json
-    with open('name_to_pmids.txt','w') as f:
-        json.dump(out, f)
+    with open('name_to_pmids.json', 'w') as f:
+        f.write(json.dumps(out))
 
 def get_common_names():
     import pubchempy as pcp
