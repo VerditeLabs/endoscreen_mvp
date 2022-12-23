@@ -1,3 +1,4 @@
+import json
 import time
 
 all_cids = [135,
@@ -2869,7 +2870,7 @@ def cas_to_cid():
     print("all cids", all_cids)
     print("leftover cids", leftover_cas)
 
-def find_literature(common_name):
+def find_literature():
     import easy_entrez
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
@@ -2877,10 +2878,25 @@ def find_literature(common_name):
         # optional
         return_type='json'
     )
-
-    for name in common_name:
-        time.sleep(.1)
-        res = entrez_api.search(name + ' AND endocrine', max_results=100, database='pubmed')
+    from collections import defaultdict
+    out = defaultdict(list)
+    with open('all_common_names.txt', 'r') as f:
+        for line in f:
+            name = line.strip()
+            #names are crazy, let's keep to more common stuff
+            if '(' in name or ',' in name:
+                continue
+            time.sleep(.1)
+            res = entrez_api.search(name + ' AND endocrine', max_results=100, database='pubmed')
+            summary = entrez_api.summarize(res.data['esearchresult']['idlist'], max_results = 100)
+            if 'result' not in summary.data:
+                continue # no results
+            asdf = summary.data['result']
+            print(name, summary.data['result']['uids'])
+            out[name] = summary.data['result']['uids']
+    import json
+    with open('name_to_pmids.txt','w') as f:
+        json.dump(out, f)
 
 def get_common_names():
     import pubchempy as pcp
@@ -2896,4 +2912,5 @@ def get_common_names():
 
 
 #cas_to_cid()
-get_common_names()
+#get_common_names()
+find_literature()
