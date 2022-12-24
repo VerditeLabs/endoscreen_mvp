@@ -2848,6 +2848,7 @@ all_cas = ['50-32-8',
 
 def cas_to_cid():
     import easy_entrez
+
     from easy_entrez.parsing import xml_to_string
     all_cids = set()
     leftover_cas = set()
@@ -2872,6 +2873,8 @@ def cas_to_cid():
 
 def find_literature():
     import easy_entrez
+    from easy_entrez.parsing import xml_to_string
+    import xmltodict
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
         'verditelabs@gmail.com',
@@ -2880,23 +2883,27 @@ def find_literature():
     )
     from collections import defaultdict
     out = defaultdict(list)
+    fetched_out = defaultdict(list)
     with open('all_common_names.txt', 'r') as f:
         for line in f:
             name = line.strip()
             #names are crazy, let's keep to more common stuff
             if '(' in name or ',' in name:
                 continue
-            time.sleep(.1)
+            time.sleep(1)
             res = entrez_api.search(name + ' AND endocrine', max_results=100, database='pubmed')
-            summary = entrez_api.summarize(res.data['esearchresult']['idlist'], max_results = 100)
-            if 'result' not in summary.data:
-                continue # no results
-            asdf = summary.data['result']
-            print(name, summary.data['result']['uids'])
-            out[name] = summary.data['result']['uids']
+            if res.data['esearchresult']['count'] == '0':
+                continue
+            #summary = entrez_api.summarize(res.data['esearchresult']['idlist'], max_results = 100)
+            fetched = entrez_api.fetch(res.data['esearchresult']['idlist'], max_results = 100, database='pubmed')
+            parsed = xmltodict.parse(xml_to_string(fetched.data))
+            print(name,"got",len(parsed['PubmedArticleSet']['PubmedArticle']),'hits')
+            fetched_out[name] = parsed['PubmedArticleSet']['PubmedArticle']
     import json
-    with open('name_to_pmids.json', 'w') as f:
+    with open('name_to_pmids_summary.json', 'w') as f:
         f.write(json.dumps(out))
+    with open('name_to_fetched_data.json','w') as f:
+        json.dump(fetched_out,f)
 
 def contains_lowercase(s):
     for c in s:
@@ -2953,5 +2960,5 @@ def sanitize_synonyms():
 
 #cas_to_cid()
 #get_common_names()
-#find_literature()
-sanitize_synonyms()
+find_literature()
+#sanitize_synonyms()
