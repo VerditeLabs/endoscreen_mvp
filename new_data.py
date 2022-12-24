@@ -2846,6 +2846,8 @@ all_cas = ['50-32-8',
 '1782069-81-1',
 '1824346-00-0',]
 
+from collections import defaultdict
+
 def cas_to_cid():
     import easy_entrez
 
@@ -2870,6 +2872,20 @@ def cas_to_cid():
         print(cas,cid)
     print("all cids", all_cids)
     print("leftover cids", leftover_cas)
+
+def find_lit2():
+    import easy_entrez
+    from easy_entrez.parsing import xml_to_string
+    import xmltodict
+    entrez_api = easy_entrez.EntrezAPI('endoscreen','verditelabs@gmail.com',return_type='json')
+    search_term = ''
+    res = entrez_api.search(search_term, max_results=99999, database='pubmed')
+    print("found this many articles",len(res.data['esearchresult']['idlist']))
+    fetched = entrez_api.fetch(res.data['esearchresult']['idlist'], max_results=1000, database='pubmed')
+    parsed = xmltodict.parse(xml_to_string(fetched.data))
+
+    print(res)
+
 
 def find_literature():
     import easy_entrez
@@ -2923,6 +2939,34 @@ def get_common_names():
             all_names.add(chem.iupac_name)
     print("all names",all_names)
 
+def process_manual_search():
+    import csv
+    all_pmids = set()
+    out = list()
+
+    journals = defaultdict(lambda: 0)
+    with open('manual_pubmed_search.csv','r') as f:
+        for line in csv.DictReader(f):
+            if line['PMID'] in all_pmids:
+                continue
+            all_pmids.add(line['PMID'])
+            print(line)
+            pmid, title, journal, date = line['PMID'],line['Title'],line['Journal/Book'],line['Create Date']
+            journals[journal] += 1
+            out.append([pmid,title,journal,date])
+
+    print("num pmids",len(all_pmids))
+    with open('manual_processed_summary.csv','w') as f:
+        fieldnames = ['pmid', 'title','journal','date']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for line in out:
+            writer.writerow({'pmid':line[0],'title':line[1],'journal':line[2],'date':line[3]})
+    for k,v in reversed(sorted(journals.items(),key= lambda item: item[1])):
+        print(k,v)
+    print("wrote rows")
+
+
 def sanitize_synonyms():
     # synonyms be crazy, let's process them some
     banned_terms = [
@@ -2960,5 +3004,7 @@ def sanitize_synonyms():
 
 #cas_to_cid()
 #get_common_names()
-find_literature()
+#find_literature()
 #sanitize_synonyms()
+#find_lit2()
+process_manual_search()
