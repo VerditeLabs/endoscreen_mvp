@@ -3028,6 +3028,8 @@ def parse_pubmed():
         return_type='json'
     )
     chem_occurrances = defaultdict(lambda: 0)
+    mesh_occurrances = defaultdict(lambda: 0)
+    keyword_occurrances = defaultdict(lambda: 0)
     with open('manual_processed_summary.csv','r') as f:
         reader = csv.DictReader(f)
         iter = 0
@@ -3048,10 +3050,24 @@ def parse_pubmed():
                         chemicals = [chemicals]
                     for chem in chemicals:
                         chem_occurrances[chem['NameOfSubstance']['#text']] += 1
+                    topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
+                    for topic in topics:
+                        mesh_occurrances[topic['DescriptorName']['#text']]+=1
+                    keywords = article['MedlineCitation']['KeywordList']['Keyword']
+                    #print(keywords)
+                    for word in keywords:
+                        keyword_occurrances[word['#text']]+=1
                 except:
                     pass
 
+            print("chems")
             for k,v in reversed(sorted(chem_occurrances.items(),key= lambda item: item[1])):
+                print(k,v)
+            print("mesh")
+            for k,v in reversed(sorted(mesh_occurrances.items(),key= lambda item: item[1])):
+                print(k,v)
+            print("keyword")
+            for k,v in reversed(sorted(keyword_occurrances.items(),key= lambda item: item[1])):
                 print(k,v)
 
 
