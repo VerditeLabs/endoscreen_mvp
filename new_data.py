@@ -1,3 +1,4 @@
+import csv
 import json
 import time
 
@@ -2847,6 +2848,10 @@ all_cas = ['50-32-8',
 '1824346-00-0',]
 
 from collections import defaultdict
+import easy_entrez
+from easy_entrez.parsing import xml_to_string
+import xmltodict
+
 
 def cas_to_cid():
     import easy_entrez
@@ -2965,6 +2970,7 @@ def process_manual_search():
     for k,v in reversed(sorted(journals.items(),key= lambda item: item[1])):
         print(k,v)
     print("wrote rows")
+    print("num journals",len(journals))
 
 
 def sanitize_synonyms():
@@ -3002,9 +3008,57 @@ def sanitize_synonyms():
         json.dump(processed_names,f)
 
 
+my_list = ['geeks', 'for', 'geeks', 'like',
+           'geeky', 'nerdy', 'geek', 'love',
+           'questions', 'words', 'life']
+
+
+def chunkify(l, n):
+    # looping till length l
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
+
+def parse_pubmed():
+    entrez_api = easy_entrez.EntrezAPI(
+        'endoscreen',
+        'verditelabs@gmail.com',
+        # optional
+        return_type='json'
+    )
+    chem_occurrances = defaultdict(lambda: 0)
+    with open('manual_processed_summary.csv','r') as f:
+        reader = csv.DictReader(f)
+        iter = 0
+        for batch in chunkify(list(reader),100):
+            print("num processed",iter)
+            iter+=1
+            if iter>10:
+                pass
+            time.sleep(.3)
+            pmids = [i['pmid'] for i in batch]
+            fetched = entrez_api.fetch(pmids, max_results=100, database='pubmed')
+            parsed = xmltodict.parse(xml_to_string(fetched.data))
+            for article in parsed['PubmedArticleSet']['PubmedArticle']:
+
+                try:
+                    chemicals = article['MedlineCitation']['ChemicalList']['Chemical']
+                    if isinstance(chemicals,dict):
+                        chemicals = [chemicals]
+                    for chem in chemicals:
+                        chem_occurrances[chem['NameOfSubstance']['#text']] += 1
+                except:
+                    pass
+
+            for k,v in reversed(sorted(chem_occurrances.items(),key= lambda item: item[1])):
+                print(k,v)
+
+
 #cas_to_cid()
 #get_common_names()
 #find_literature()
 #sanitize_synonyms()
 #find_lit2()
-process_manual_search()
+#process_manual_search()
+parse_pubmed()
