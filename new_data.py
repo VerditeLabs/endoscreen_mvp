@@ -1,12 +1,66 @@
 import csv
+import gzip
 import json
 import time
-
+import os
 
 from collections import defaultdict
 import easy_entrez
 from easy_entrez.parsing import xml_to_string
 import xmltodict
+
+def offline_search():
+    path='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
+    print(sorted(os.listdir(path)))
+    for file in sorted(os.listdir(path)):
+        if not file.endswith('.xml.gz'):
+            continue
+        inpath = os.path.join(path,file)
+        outpath = inpath.replace('.xml.gz','.csv')
+        with gzip.open(inpath,'r') as in_f:
+            out = []
+            print("parsing",file)
+            parsed = xmltodict.parse(in_f.read())
+            for article in parsed['PubmedArticleSet']['PubmedArticle']:
+                title = article['MedlineCitation']['Article']['ArticleTitle']
+                journal = article['MedlineCitation']['Article']['Journal']['Title']
+                try:
+                    abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
+                except:
+                    abstract = ''
+                try:
+                    chemicals = article['MedlineCitation']['ChemicalList']['Chemical']
+                    if isinstance(chemicals, dict):
+                        chemicals = [chemicals]
+                    chemicals = ','.join(chem['NameOfSubstance']['#text'].strip() for chem in chemicals)
+                except:
+                    chemicals = ''
+
+                pmid = article['MedlineCitation']['PMID']['#text']
+                date = article['MedlineCitation']['DateCompleted']
+                date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
+                try:
+                    topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
+                    if isinstance(topics,dict):
+                        topics = [topics]
+                    topics = ','.join(topic['DescriptorName']['#text'].strip() for topic in topics)
+                except:
+                    topics = ''
+                try:
+                    keywords = article['MedlineCitation']['KeywordList']['Keyword']
+                    keywords = ','.join(word['#text'].strip() for word in keywords)
+                except:
+                    keywords = ''
+                publication_type = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
+                if isinstance(publication_type,dict):
+                    publication_type = [publication_type]
+                pubtype = ','.join([t['#text'] for t in publication_type])
+                #print(chemicals,topics,keywords)
+                out.append({'pmid': pmid, 'title': title, 'journal': journal, 'date': date, 'pubtype': pubtype,
+                            'abstract': abstract, 'chemicals': chemicals, 'meshterms': topics,
+                            'keywords': keywords})
+                print(out)
+
 
 
 def cas_to_cid():
@@ -235,4 +289,5 @@ def parse_pubmed():
 #sanitize_synonyms()
 #find_lit2()
 #process_manual_search()
-parse_pubmed()
+#parse_pubmed()
+offline_search()
