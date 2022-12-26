@@ -4,15 +4,18 @@ import json
 import time
 import os
 
+import untangle
+
 from collections import defaultdict
 import easy_entrez
 from easy_entrez.parsing import xml_to_string
 import xmltodict
+from xml.etree import ElementTree
 
 def offline_search():
     path='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
     print(sorted(os.listdir(path)))
-    for file in sorted(os.listdir(path)):
+    for file in reversed(sorted(os.listdir(path))):
         if not file.endswith('.xml.gz'):
             continue
         inpath = os.path.join(path,file)
@@ -20,14 +23,17 @@ def offline_search():
         with gzip.open(inpath,'r') as in_f:
             out = []
             print("parsing",file)
-            parsed = xmltodict.parse(in_f.read())
+            parsed = xmltodict.parse(in_f)
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
                 title = article['MedlineCitation']['Article']['ArticleTitle']
                 journal = article['MedlineCitation']['Article']['Journal']['Title']
                 try:
                     abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
+                    if abstract is None:
+                        abstract = ''
                 except:
                     abstract = ''
+
                 try:
                     chemicals = article['MedlineCitation']['ChemicalList']['Chemical']
                     if isinstance(chemicals, dict):
@@ -35,9 +41,14 @@ def offline_search():
                     chemicals = ','.join(chem['NameOfSubstance']['#text'].strip() for chem in chemicals)
                 except:
                     chemicals = ''
-
                 pmid = article['MedlineCitation']['PMID']['#text']
-                date = article['MedlineCitation']['DateCompleted']
+                try:
+                    date = article['MedlineCitation']['DateCompleted']
+                except:
+                    try:
+                        date = article['MedlineCitation']['DateRevised']
+                    except:
+                        pass
                 date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
                 try:
                     topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
@@ -59,7 +70,9 @@ def offline_search():
                 out.append({'pmid': pmid, 'title': title, 'journal': journal, 'date': date, 'pubtype': pubtype,
                             'abstract': abstract, 'chemicals': chemicals, 'meshterms': topics,
                             'keywords': keywords})
-                print(out)
+                if 'endocrine' in abstract and 'disrupt' in abstract:
+                    print(pmid)
+                #print(out)
 
 
 
