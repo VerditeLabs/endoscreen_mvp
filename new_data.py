@@ -16,14 +16,17 @@ def offline_search():
     path='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
     print(sorted(os.listdir(path)))
     for file in reversed(sorted(os.listdir(path))):
-        if not file.endswith('.xml.gz'):
-            continue
         inpath = os.path.join(path,file)
         outpath = inpath.replace('.xml.gz','.csv')
-        with gzip.open(inpath,'r') as in_f:
+        if not file.endswith('.xml.gz'):
+            continue
+        if os.path.exists(outpath):
+            continue
+        with gzip.open(inpath,'r') as in_f, open(outpath, 'w') as out_f:
             out = []
             print("parsing",file)
             parsed = xmltodict.parse(in_f)
+
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
                 title = article['MedlineCitation']['Article']['ArticleTitle']
                 journal = article['MedlineCitation']['Article']['Journal']['Title']
@@ -72,8 +75,9 @@ def offline_search():
                             'keywords': keywords})
                 if 'endocrine' in abstract and 'disrupt' in abstract:
                     print(pmid)
-                #print(out)
-
+            writer = csv.DictWriter(out_f,['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms','keywords'])
+            writer.writeheader()
+            writer.writerows(out)
 
 
 def cas_to_cid():
