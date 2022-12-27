@@ -44,6 +44,23 @@ def search_offline_csvs():
 
                     #print(line)
 
+def convert_pubmed_to_json():
+    indir='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
+    outdir ='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/asjson'
+    for file in reversed(sorted(os.listdir(indir))):
+        infilepath = os.path.join(indir,file)
+        outfilepath = os.path.join(outdir,file).replace('.xml.gz','.json.gz')
+        if not file.endswith('.xml.gz'):
+            continue
+        if os.path.exists(outfilepath):
+            continue
+        print("converting",infilepath,'to json',outfilepath)
+        with gzip.open(infilepath, 'r') as in_f, gzip.open(outfilepath, 'w') as out_f:
+            json.dump(xmltodict.parse(in_f),out_f)
+
+
+
+
 
 def offline_search():
     path='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
@@ -65,6 +82,8 @@ def offline_search():
                 journal = article['MedlineCitation']['Article']['Journal']['Title']
                 try:
                     abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
+                    if not isinstance(abstract,str):
+                        print()
                     if abstract is None:
                         abstract = ''
                 except:
@@ -360,4 +379,5 @@ def parse_pubmed():
 #process_manual_search()
 #parse_pubmed()
 #offline_search()
-search_offline_csvs()
+#search_offline_csvs()
+convert_pubmed_to_json()
