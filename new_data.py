@@ -7,10 +7,35 @@ import os
 import untangle
 
 from collections import defaultdict
-import easy_entrez
-from easy_entrez.parsing import xml_to_string
+#import easy_entrez
+#from easy_entrez.parsing import xml_to_string
 import xmltodict
-from xml.etree import ElementTree
+#from xml.etree import ElementTree
+
+def search_offline_csvs():
+    path = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
+    for file in reversed(sorted(os.listdir(path))):
+        if not file.endswith('.csv'):
+            continue
+        with open(os.path.join(path,file),'r') as in_f, open('offline_pubmed_searched.csv','w') as out_f:
+            reader = csv.DictReader(in_f)
+            writer = csv.DictWriter(out_f,['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms','keywords'])
+            for line in reader:
+                pmid = line['pmid']
+                title = line['title']
+                journal = line['journal']
+                date = line['date']
+                pubtype = line['pubtype']
+                abstract = line['abstract']
+                chemicals = line['chemicals']
+                meshterms = line['meshterms']
+                keywords = line['keywords']
+                if any('endocrine' in thing and 'disrupt' in thing for thing in [title,abstract,chemicals,meshterms,keywords]):
+                    writer.writerow(line)
+                    print(pmid)
+
+                #print(line)
+
 
 def offline_search():
     path='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
@@ -65,11 +90,30 @@ def offline_search():
                     keywords = ','.join(word['#text'].strip() for word in keywords)
                 except:
                     keywords = ''
-                publication_type = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
-                if isinstance(publication_type,dict):
-                    publication_type = [publication_type]
-                pubtype = ','.join([t['#text'] for t in publication_type])
+                try:
+                    publication_type = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
+                    if isinstance(publication_type,dict):
+                        publication_type = [publication_type]
+                    pubtype = ','.join([t['#text'] for t in publication_type])
+                except:
+                    pubtype = ''
                 #print(chemicals,topics,keywords)
+                pmid = pmid.encode('ascii','ignore')
+                try:
+                    title = title.encode('ascii','ignore')
+                except:
+                    title = ''
+                journal = journal.encode('ascii','ignore')
+                date = date.encode('ascii','ignore')
+                pubtype = pubtype.encode('ascii','ignore')
+                try:
+                    #todo: looks like some abstracts eist
+                    abstract = abstract.encode('ascii','ignore')
+                except:
+                    abstract = ''
+                chemicals = chemicals.encode('ascii','ignore')
+                topics = topics.encode('ascii','ignore')
+                keywords = keywords.encode('ascii','ignore')
                 out.append({'pmid': pmid, 'title': title, 'journal': journal, 'date': date, 'pubtype': pubtype,
                             'abstract': abstract, 'chemicals': chemicals, 'meshterms': topics,
                             'keywords': keywords})
@@ -307,4 +351,5 @@ def parse_pubmed():
 #find_lit2()
 #process_manual_search()
 #parse_pubmed()
-offline_search()
+#offline_search()
+search_offline_csvs()
