@@ -14,27 +14,35 @@ import xmltodict
 
 def search_offline_csvs():
     path = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
-    for file in reversed(sorted(os.listdir(path))):
-        if not file.endswith('.csv'):
-            continue
-        with open(os.path.join(path,file),'r') as in_f, open('offline_pubmed_searched.csv','w') as out_f:
-            reader = csv.DictReader(in_f)
-            writer = csv.DictWriter(out_f,['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms','keywords'])
-            for line in reader:
-                pmid = line['pmid']
-                title = line['title']
-                journal = line['journal']
-                date = line['date']
-                pubtype = line['pubtype']
-                abstract = line['abstract']
-                chemicals = line['chemicals']
-                meshterms = line['meshterms']
-                keywords = line['keywords']
-                if any('endocrine' in thing and 'disrupt' in thing for thing in [title,abstract,chemicals,meshterms,keywords]):
-                    writer.writerow(line)
-                    print(pmid)
+    with open('offline_pubmed_searched.csv','w') as out_f:
+        writer = csv.DictWriter(out_f,
+                                ['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms',
+                                 'keywords'])
+        writer.writeheader()
+        num = 0
+        for file in reversed(sorted(os.listdir(path))):
+            if not file.endswith('.csv'):
+                continue
+            with open(os.path.join(path,file),'r') as in_f:
+                reader = csv.DictReader(in_f)
 
-                #print(line)
+                for line in reader:
+                    pmid = line['pmid']
+                    title = line['title']
+                    journal = line['journal']
+                    date = line['date']
+                    pubtype = line['pubtype']
+                    abstract = line['abstract']
+                    chemicals = line['chemicals']
+                    meshterms = line['meshterms']
+                    keywords = line['keywords']
+                    if any('endocrine' in thing and 'disrupt' in thing for thing in [title,abstract,chemicals,meshterms,keywords]):
+                        writer.writerow(line)
+                        print(pmid)
+                        num+=1
+                        print(num)
+
+                    #print(line)
 
 
 def offline_search():
