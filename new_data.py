@@ -12,6 +12,62 @@ from collections import defaultdict
 import xmltodict
 #from xml.etree import ElementTree
 
+exclusion_list = [
+    'fish',
+    'fishes',
+    'zebrafish',
+    'zebrafishes',
+    'flies',
+    'fly',
+    'c elegens',
+    'c. elegens',
+    'mollusk',
+    'worm',
+    'worms',
+    'fruit fly',
+    'fruit flies',
+    'editorial',
+    'biography',
+    'clam',
+    'silica',
+    'flatworm',
+    'mixture',
+    'nonmammalian',
+    'trout',
+    'cod',
+    'molluscs',
+    'yolk',
+    'bird',
+    'invertebrate',
+    'invertebrates',
+    'birds',
+    'carp',
+    'chlorophyll',
+    'wastewater',
+    'bass',
+    'jetlag',
+    'catfish',
+    'minnow',
+    'songbird',
+    'mummichog',
+    'medaka',
+    'quail',
+    'dolphin',
+    'tilapia',
+    'mussel',
+    'amphibian',
+    'Daphnia',
+    'toads',
+    'frogs',
+    'frog',
+    'toad',
+    'swordfish',
+    'elliptio',
+    'mussels',
+    'turtles',
+    'crustacean',
+]
+
 def search_offline_csvs():
     path = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
     with open('offline_pubmed_searched.csv','w') as out_f:
@@ -58,8 +114,107 @@ def convert_pubmed_to_json():
         with gzip.open(infilepath, 'r') as in_f, gzip.open(outfilepath, 'w') as out_f:
             json.dump(xmltodict.parse(in_f),out_f)
 
+def offline_json_search():
+    indir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/asjson'
+    for file in reversed(sorted(os.listdir(indir))):
+        infilepath = os.path.join(indir, file)
+        if not infilepath.endswith('.json.gz'):
+            continue
+        with gzip.open(infilepath,'r') as in_f:
+            parsed = json.load(in_f)
+            for article in parsed['PubmedArticleSet']['PubmedArticle']:
 
+                title = article['MedlineCitation']['Article']['ArticleTitle']
+                if isinstance(title,dict):
+                    try:
+                        title = title['#text']
+                    except:
+                        title = 'Im too stupid to title my paper correctly'
+                if title is None:
+                    title = 'Im too stupid to title my paper'
+                pmid = article['MedlineCitation']['PMID']['#text']
+                journal = article['MedlineCitation']['Article']['Journal']['Title']
+                if not isinstance(journal,str):
+                    #print()
+                    pass
+                try:
+                    abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
+                except:
+                    abstract = ''
+                if isinstance(abstract,list):
+                    try:
+                        abstract = [thing['#text'] for thing in abstract]
+                    except:
+                        #if your paper gets then you suck
+                        abstract = ''
+                    abstract = ','.join(abstract)
+                elif isinstance(abstract,dict):
+                    try:
+                        abstract = abstract['#text']
+                    except:
+                        abstract = 'I suck at formatting my pubmed entries'
+                if abstract is None:
+                    abstract = '?????????????'
 
+                try:
+                    chemicals = article['MedlineCitation']['ChemicalList']['Chemical']
+                except:
+                    chemicals = []
+                if not isinstance(chemicals, list):
+                    chemicals = [chemicals]
+                if len(chemicals) > 0 and isinstance(chemicals[0],dict):
+                    chemicals = [thing['NameOfSubstance']['#text'] for thing in chemicals]
+
+                try:
+                    date = article['MedlineCitation']['DateCompleted']
+                except:
+                    date = article['MedlineCitation']['DateRevised']
+                date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
+
+                try:
+                    topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
+                except:
+                    topics = []
+                if not isinstance(topics,list):
+                    topics = [topics]
+                try:
+                    topics = [thing['#text'] for thing in topics]
+                except:
+                    topics = [thing['DescriptorName']['#text'] for thing in topics]
+
+                try:
+                    keywords = article['MedlineCitation']['KeywordList']['Keyword']
+                except:
+                    keywords = []
+                if not isinstance(keywords,list):
+                    keywords = [keywords]
+                try:
+                    keywords = [thing['#text'] for thing in keywords]
+                except:
+                    keywords =[]
+
+                pubtype = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
+                if not isinstance(pubtype,list):
+                    pubtype = [pubtype]
+                pubtype = [thing['#text'] for thing in pubtype]
+
+                pubtype = ','.join(pubtype)
+                keywords = ','.join(keywords)
+                chemicals = ','.join(chemicals)
+                topics = ','.join(topics)
+
+                pmid = pmid.encode('ascii','ignore')
+                title = title.encode('ascii','ignore')
+                journal = journal.encode('ascii','ignore')
+                date = date.encode('ascii','ignore')
+                pubtype = pubtype.encode('ascii','ignore')
+                abstract = abstract.encode('ascii','ignore')
+                chemicals = chemicals.encode('ascii','ignore')
+                topics = topics.encode('ascii','ignore')
+                keywords = keywords.encode('ascii','ignore')
+
+                if 'endocrine' in abstract and 'disrupt' in abstract:
+                    print(pmid)
 
 
 def offline_search():
@@ -380,4 +535,5 @@ def parse_pubmed():
 #parse_pubmed()
 #offline_search()
 #search_offline_csvs()
-convert_pubmed_to_json()
+#convert_pubmed_to_json()
+offline_json_search()
