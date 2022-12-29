@@ -8,8 +8,8 @@ import orjson
 import untangle
 
 from collections import defaultdict
-#import easy_entrez
-#from easy_entrez.parsing import xml_to_string
+import easy_entrez
+from easy_entrez.parsing import xml_to_string
 import xmltodict
 #from xml.etree import ElementTree
 
@@ -68,6 +68,124 @@ exclusion_list = [
     'turtles',
     'crustacean',
 ]
+
+def get_pubmed_data(article):
+    title = article['MedlineCitation']['Article']['ArticleTitle']
+    if isinstance(title, dict):
+        try:
+            title = title['#text']
+        except:
+            title = 'Im too stupid to title my paper correctly'
+    if title is None:
+        title = 'Im too stupid to title my paper'
+    pmid = article['MedlineCitation']['PMID']['#text']
+    journal = article['MedlineCitation']['Article']['Journal']['Title']
+    if not isinstance(journal, str):
+        # print()
+        pass
+    try:
+        abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
+    except:
+        abstract = ''
+    if isinstance(abstract, list):
+        try:
+            abstract = [thing['#text'] for thing in abstract]
+        except:
+            # if your paper gets then you suck
+            abstract = ''
+        abstract = ','.join(abstract)
+    elif isinstance(abstract, dict):
+        try:
+            abstract = abstract['#text']
+        except:
+            abstract = 'I suck at formatting my pubmed entries'
+    if abstract is None:
+        abstract = '?????????????'
+
+    try:
+        chemicals = article['MedlineCitation']['ChemicalList']['Chemical']
+    except:
+        chemicals = []
+    if not isinstance(chemicals, list):
+        chemicals = [chemicals]
+    if len(chemicals) > 0 and isinstance(chemicals[0], dict):
+        chemicals = [thing['NameOfSubstance']['#text'] for thing in chemicals]
+
+    try:
+        date = article['MedlineCitation']['DateCompleted']
+    except:
+        date = article['MedlineCitation']['DateRevised']
+    date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
+
+    try:
+        topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
+    except:
+        topics = []
+    if not isinstance(topics, list):
+        topics = [topics]
+    try:
+        topics = [thing['#text'] for thing in topics]
+    except:
+        topics = [thing['DescriptorName']['#text'] for thing in topics]
+
+    try:
+        keywords = article['MedlineCitation']['KeywordList']['Keyword']
+    except:
+        keywords = []
+    if not isinstance(keywords, list):
+        keywords = [keywords]
+    try:
+        keywords = [thing['#text'] for thing in keywords]
+    except:
+        keywords = []
+
+    try:
+        pubtype = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
+        if not isinstance(pubtype, list):
+            pubtype = [pubtype]
+        pubtype = [thing['#text'] for thing in pubtype]
+    except:
+        pubtype = []
+
+    pubtype = ','.join(pubtype)
+    keywords = ','.join(keywords)
+    chemicals = ','.join(chemicals)
+    topics = ','.join(topics)
+
+    #pmid = pmid.decode('ascii', 'ignore')
+    #title = title.decode('ascii', 'ignore')
+    #journal = journal.decode('ascii', 'ignore')
+    #date = date.decode('ascii', 'ignore')
+    #pubtype = pubtype.decode('ascii', 'ignore')
+    #abstract = abstract.decode('ascii', 'ignore')
+    #chemicals = chemicals.decode('ascii', 'ignore')
+    #topics = topics.decode('ascii', 'ignore')
+    #keywords = keywords.encode('ascii', 'ignore')
+
+    return pmid,title,journal,date,pubtype,abstract,chemicals,topics,keywords
+
+def get_offline_articles_from_csv():
+    indir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
+    for file in reversed(sorted(os.listdir(indir))):
+        infilepath = os.path.join(indir, file)
+        if not file.endswith('.csv'):
+            continue
+        with open(infilepath,'r') as f:
+            reader = csv.DictReader(f)
+            for line in reader:
+                yield line
+
+
+def get_offline_articles():
+    indir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/asjson'
+    for file in reversed(sorted(os.listdir(indir))):
+        infilepath = os.path.join(indir, file)
+        if not infilepath.endswith('.json.gz'):
+            continue
+        with gzip.open(infilepath, 'r') as in_f:
+            parsed = json.load(in_f)
+            for article in parsed['PubmedArticleSet']['PubmedArticle']:
+                yield article
 
 def search_offline_csvs():
     path = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
@@ -131,98 +249,7 @@ def offline_json_search():
             parsed = orjson.loads(in_f.read())
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
 
-                title = article['MedlineCitation']['Article']['ArticleTitle']
-                if isinstance(title,dict):
-                    try:
-                        title = title['#text']
-                    except:
-                        title = 'Im too stupid to title my paper correctly'
-                if title is None:
-                    title = 'Im too stupid to title my paper'
-                pmid = article['MedlineCitation']['PMID']['#text']
-                journal = article['MedlineCitation']['Article']['Journal']['Title']
-                if not isinstance(journal,str):
-                    #print()
-                    pass
-                try:
-                    abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
-                except:
-                    abstract = ''
-                if isinstance(abstract,list):
-                    try:
-                        abstract = [thing['#text'] for thing in abstract]
-                    except:
-                        #if your paper gets then you suck
-                        abstract = ''
-                    abstract = ','.join(abstract)
-                elif isinstance(abstract,dict):
-                    try:
-                        abstract = abstract['#text']
-                    except:
-                        abstract = 'I suck at formatting my pubmed entries'
-                if abstract is None:
-                    abstract = '?????????????'
-
-                try:
-                    chemicals = article['MedlineCitation']['ChemicalList']['Chemical']
-                except:
-                    chemicals = []
-                if not isinstance(chemicals, list):
-                    chemicals = [chemicals]
-                if len(chemicals) > 0 and isinstance(chemicals[0],dict):
-                    chemicals = [thing['NameOfSubstance']['#text'] for thing in chemicals]
-
-                try:
-                    date = article['MedlineCitation']['DateCompleted']
-                except:
-                    date = article['MedlineCitation']['DateRevised']
-                date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
-
-                try:
-                    topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
-                except:
-                    topics = []
-                if not isinstance(topics,list):
-                    topics = [topics]
-                try:
-                    topics = [thing['#text'] for thing in topics]
-                except:
-                    topics = [thing['DescriptorName']['#text'] for thing in topics]
-
-                try:
-                    keywords = article['MedlineCitation']['KeywordList']['Keyword']
-                except:
-                    keywords = []
-                if not isinstance(keywords,list):
-                    keywords = [keywords]
-                try:
-                    keywords = [thing['#text'] for thing in keywords]
-                except:
-                    keywords =[]
-
-                try:
-                    pubtype = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
-                    if not isinstance(pubtype, list):
-                        pubtype = [pubtype]
-                    pubtype = [thing['#text'] for thing in pubtype]
-                except:
-                    pubtype = []
-
-
-                pubtype = ','.join(pubtype)
-                keywords = ','.join(keywords)
-                chemicals = ','.join(chemicals)
-                topics = ','.join(topics)
-
-                pmid = pmid.encode('ascii','ignore')
-                title = title.encode('ascii','ignore')
-                journal = journal.encode('ascii','ignore')
-                date = date.encode('ascii','ignore')
-                pubtype = pubtype.encode('ascii','ignore')
-                abstract = abstract.encode('ascii','ignore')
-                chemicals = chemicals.encode('ascii','ignore')
-                topics = topics.encode('ascii','ignore')
-                keywords = keywords.encode('ascii','ignore')
+                pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
 
                 cited_pmids = set()
                 if 'ReferenceList' in article['PubmedData']:
@@ -562,6 +589,94 @@ def parse_pubmed():
         writer.writerows(out)
 
 
+def analyze_frequency(s: str):
+    import string
+    from raw_data import MOST_FREQUENT_WORDS
+    #returns a filtered word frequency for s
+
+    #preprocess s
+    s = s.lower()
+    #TODO: collapse some punctuated terms, e.g. anti-estrogenic, in-vivo
+    #into single words so that they aren't split into 2 words
+
+    #remove punctuation
+    s = s.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
+    #s = s.split()
+    s = filter(lambda x: x not in MOST_FREQUENT_WORDS,s.split())
+    s = filter(lambda x: not x.isnumeric(), s)
+    s = filter(lambda x: len(x)>1, s)
+    freq = defaultdict(lambda: 0)
+    for word in s:
+        #print(word)
+        freq[word] += 1
+    return freq
+
+def do_pubmed_freq_analysis():
+    with open('deduct_word_scores.json','r') as f:
+        SCORES = json.load(f)
+    ALL_SCORES = dict()
+    with open('pubmed_freq_scores.json','w') as f:
+        writer = csv.DictWriter(f,['pmid','score'])
+        writer.writeheader()
+        num = 0
+        for article in get_offline_articles_from_csv():
+            num+=1
+        #for article in get_offline_articles():
+            #pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
+            #searchable = ' '.join(get_pubmed_data(article))
+            pmid = article['pmid']
+            searchable = ' '.join(article.values())
+            freq = analyze_frequency(searchable)
+            score = 0
+            num_words = 0
+            for k,v in freq.items():
+                num_words += v
+                score += SCORES.get(k,0) * v
+            score /= num_words
+            ALL_SCORES[pmid] = score
+            if num%10000 == 0:
+                print(num)
+            #print(pmid,score)
+            writer.writerow({'pmid':pmid,'score':score})
+
+
+def gen_deduct_freq_analysis():
+    from raw_data import DEDUCT_UNIQUE_PMIDS
+    entrez_api = easy_entrez.EntrezAPI(
+        'endoscreen',
+        'verditelabs@gmail.com',
+        # optional
+        return_type='json'
+    )
+    fetched = entrez_api.fetch([str(p) for p in DEDUCT_UNIQUE_PMIDS], max_results=5000, database='pubmed')
+    parsed = xmltodict.parse(xml_to_string(fetched.data))
+    #print(parsed)
+    out = defaultdict(lambda: 0)
+    for article in parsed['PubmedArticleSet']['PubmedArticle']:
+        searchable = ' '.join(get_pubmed_data(article))
+        freq = analyze_frequency(searchable)
+        #print(freq)
+        for k,v in freq.items():
+            out[k] += v
+    total_words = 0
+    scores = dict()
+    rank = 1
+    for k,v in reversed(sorted(out.items(),key=lambda x:x[1])):
+        total_words+=v
+        scores[k] = (len(out) - rank) / len(out) * len(k)
+        rank += 1
+        #print(k,v)
+    for k,v in sorted(scores.items(),key=lambda x:x[1]):
+        print(k,v)
+    with open('deduct_word_scores.json','w') as f:
+        json.dump(scores,f)
+
+
+    print(total_words)
+
+
+
+
 #cas_to_cid()
 #get_common_names()
 #find_literature()
@@ -570,6 +685,8 @@ def parse_pubmed():
 #process_manual_search()
 #parse_pubmed()
 #offline_search()
-search_offline_csvs()
+#search_offline_csvs()
 #convert_pubmed_to_json()
 #offline_json_search()
+#gen_deduct_freq_analysis()
+do_pubmed_freq_analysis()
