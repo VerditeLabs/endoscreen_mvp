@@ -615,7 +615,7 @@ def do_pubmed_freq_analysis():
     with open('deduct_word_scores.json','r') as f:
         SCORES = json.load(f)
     ALL_SCORES = dict()
-    with open('pubmed_freq_scores.json','w') as f:
+    with open('pubmed_freq_scores.csv','w') as f:
         writer = csv.DictWriter(f,['pmid','score'])
         writer.writeheader()
         num = 0
@@ -625,6 +625,8 @@ def do_pubmed_freq_analysis():
             #pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
             #searchable = ' '.join(get_pubmed_data(article))
             pmid = article['pmid']
+            if len(article['abstract']) < 100:
+                continue
             searchable = ' '.join(article.values())
             freq = analyze_frequency(searchable)
             score = 0
