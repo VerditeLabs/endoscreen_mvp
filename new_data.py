@@ -3,6 +3,7 @@ import gzip
 import json
 import time
 import os
+import orjson
 
 import untangle
 
@@ -92,13 +93,18 @@ def search_offline_csvs():
                     chemicals = line['chemicals']
                     meshterms = line['meshterms']
                     keywords = line['keywords']
-                    if any('endocrine' in thing and 'disrupt' in thing for thing in [title,abstract,chemicals,meshterms,keywords]):
-                        writer.writerow(line)
-                        print(pmid)
-                        num+=1
-                        print(num)
 
-                    #print(line)
+                    searchable = title + abstract + chemicals + keywords + meshterms
+                    if 'endocrine' in searchable and 'disrupt' in searchable:
+                        for thing in exclusion_list:
+                            if thing in searchable:
+                                break
+                        else:
+                            print(pmid)
+                            num+=1
+                            print(num)
+                            writer.writerow(line)
+
 
 def convert_pubmed_to_json():
     indir='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
@@ -120,8 +126,9 @@ def offline_json_search():
         infilepath = os.path.join(indir, file)
         if not infilepath.endswith('.json.gz'):
             continue
-        with gzip.open(infilepath,'r') as in_f:
-            parsed = json.load(in_f)
+        print('scanning',file)
+        with gzip.open(infilepath,'rb') as in_f:
+            parsed = orjson.loads(in_f.read())
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
 
                 title = article['MedlineCitation']['Article']['ArticleTitle']
@@ -193,10 +200,14 @@ def offline_json_search():
                 except:
                     keywords =[]
 
-                pubtype = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
-                if not isinstance(pubtype,list):
-                    pubtype = [pubtype]
-                pubtype = [thing['#text'] for thing in pubtype]
+                try:
+                    pubtype = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
+                    if not isinstance(pubtype, list):
+                        pubtype = [pubtype]
+                    pubtype = [thing['#text'] for thing in pubtype]
+                except:
+                    pubtype = []
+
 
                 pubtype = ','.join(pubtype)
                 keywords = ','.join(keywords)
@@ -213,8 +224,33 @@ def offline_json_search():
                 topics = topics.encode('ascii','ignore')
                 keywords = keywords.encode('ascii','ignore')
 
-                if 'endocrine' in abstract and 'disrupt' in abstract:
-                    print(pmid)
+                cited_pmids = set()
+                if 'ReferenceList' in article['PubmedData']:
+                    if 'Reference' in article['PubmedData']['ReferenceList']:
+                        refs = article['PubmedData']['ReferenceList']['Reference']
+                        if not isinstance(refs, list):
+                            refs = [refs]
+                        for ref in refs:
+                            if 'ArticleIdList' in ref:
+                                if 'ArticleId' in ref['ArticleIdList']:
+                                    ids = ref['ArticleIdList']['ArticleId']
+                                    if not isinstance(ids,list):
+                                        ids = [ids]
+                                    for id in ids:
+                                        if id['@IdType'] == 'pubmed':
+                                            cited_pmids.add(id['#text'])
+
+
+                searchable = title + abstract + chemicals + keywords + topics
+                searchable = searchable.decode('ascii')
+                for thing in exclusion_list:
+                    if thing in searchable:
+                        break
+                else:
+                    if 'endocrine' in searchable and 'disrupt' in searchable:
+                        print(pmid)
+                        print(cited_pmids)
+
 
 
 def offline_search():
@@ -534,6 +570,6 @@ def parse_pubmed():
 #process_manual_search()
 #parse_pubmed()
 #offline_search()
-#search_offline_csvs()
+search_offline_csvs()
 #convert_pubmed_to_json()
-offline_json_search()
+#offline_json_search()
