@@ -615,43 +615,58 @@ def do_pubmed_freq_analysis():
     with open('deduct_word_scores.json','r') as f:
         SCORES = json.load(f)
     ALL_SCORES = dict()
-    with open('pubmed_freq_scores.csv','w') as f:
-        writer = csv.DictWriter(f,['pmid','score'])
+    out = list()
+
+    num = 0
+    for article in get_offline_articles_from_csv():
+        num+=1
+    #for article in get_offline_articles():
+        #pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
+        #searchable = ' '.join(get_pubmed_data(article))
+        pmid = article['pmid']
+        if len(article['abstract']) < 100:
+            continue
+        if num > 1000000:
+            break
+        searchable = ' '.join(article.values())
+        freq = analyze_frequency(searchable)
+        score = 0
+        num_words = 0
+        for k,v in freq.items():
+            num_words += v
+            score += SCORES.get(k,0) * v
+        score /= num_words
+        ALL_SCORES[pmid] = score
+        if num%10000 == 0:
+            print(num)
+        #print(pmid,score)
+        #todo: figure out better threshold
+        if score > 7.5:
+            article['score'] = score
+            out.append(article)
+    with open('pubmed_freq_scores.csv', 'w') as f:
+        columns = ['pmid', 'score', 'title','date', 'journal',  'pubtype', 'abstract', 'chemicals', 'topics', 'keywords','meshterms']
+        writer = csv.DictWriter(f, columns)
         writer.writeheader()
-        num = 0
-        for article in get_offline_articles_from_csv():
-            num+=1
-        #for article in get_offline_articles():
-            #pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
-            #searchable = ' '.join(get_pubmed_data(article))
-            pmid = article['pmid']
-            if len(article['abstract']) < 100:
-                continue
-            searchable = ' '.join(article.values())
-            freq = analyze_frequency(searchable)
-            score = 0
-            num_words = 0
-            for k,v in freq.items():
-                num_words += v
-                score += SCORES.get(k,0) * v
-            score /= num_words
-            ALL_SCORES[pmid] = score
-            if num%10000 == 0:
-                print(num)
-            #print(pmid,score)
-            writer.writerow({'pmid':pmid,'score':score})
+        out = reversed(sorted(out,key=lambda x:x['score']))
+        writer.writerows(out)
 
 
 def gen_deduct_freq_analysis():
-    from raw_data import DEDUCT_UNIQUE_PMIDS
+    from raw_data import ALL_PMIDS
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
         'verditelabs@gmail.com',
         # optional
         return_type='json'
     )
-    fetched = entrez_api.fetch([str(p) for p in DEDUCT_UNIQUE_PMIDS], max_results=5000, database='pubmed')
+
+    fetched = entrez_api.fetch([str(p) for p in list(ALL_PMIDS)[:9999]], max_results=10000, database='pubmed')
+    fetched2 = entrez_api.fetch([str(p) for p in list(ALL_PMIDS)[9999:]], max_results=10000, database='pubmed')
+
     parsed = xmltodict.parse(xml_to_string(fetched.data))
+    parsed2 = xmltodict.parse(xml_to_string(fetched2.data))
+    parsed['PubmedArticleSet']['PubmedArticle'].extend(parsed2['PubmedArticleSet']['PubmedArticle'])
     #print(parsed)
     out = defaultdict(lambda: 0)
     for article in parsed['PubmedArticleSet']['PubmedArticle']:
@@ -673,7 +688,7 @@ def gen_deduct_freq_analysis():
     with open('deduct_word_scores.json','w') as f:
         json.dump(scores,f)
 
-
+    print(len(scores))
     print(total_words)
 
 
@@ -690,5 +705,5 @@ def gen_deduct_freq_analysis():
 #search_offline_csvs()
 #convert_pubmed_to_json()
 #offline_json_search()
-#gen_deduct_freq_analysis()
-do_pubmed_freq_analysis()
+gen_deduct_freq_analysis()
+#do_pubmed_freq_analysis()
