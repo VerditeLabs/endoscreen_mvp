@@ -620,14 +620,14 @@ def do_pubmed_freq_analysis():
     num = 0
     for article in get_offline_articles_from_csv():
         num+=1
+        #if num > 100000:
+        #    break
     #for article in get_offline_articles():
         #pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
         #searchable = ' '.join(get_pubmed_data(article))
         pmid = article['pmid']
         if len(article['abstract']) < 100:
             continue
-        if num > 1000000:
-            break
         searchable = ' '.join(article.values())
         freq = analyze_frequency(searchable)
         score = 0
@@ -636,12 +636,14 @@ def do_pubmed_freq_analysis():
             num_words += v
             score += SCORES.get(k,0) * v
         score /= num_words
+        if 'endocrine' in searchable and 'disrupt' in searchable:
+            score *= 2
         ALL_SCORES[pmid] = score
         if num%10000 == 0:
             print(num)
         #print(pmid,score)
         #todo: figure out better threshold
-        if score > 7.5:
+        if score > 9:
             article['score'] = score
             out.append(article)
     with open('pubmed_freq_scores.csv', 'w') as f:
@@ -705,5 +707,5 @@ def gen_deduct_freq_analysis():
 #search_offline_csvs()
 #convert_pubmed_to_json()
 #offline_json_search()
-gen_deduct_freq_analysis()
-#do_pubmed_freq_analysis()
+#gen_deduct_freq_analysis()
+do_pubmed_freq_analysis()
