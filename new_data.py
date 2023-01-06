@@ -4,68 +4,13 @@ import json
 import time
 import os
 
-
 from collections import defaultdict
 import easy_entrez
 from easy_entrez.parsing import xml_to_string
 import xmltodict
-#from xml.etree import ElementTree
 
-exclusion_list = set([
-    'fish',
-    'fishes',
-    'zebrafish',
-    'zebrafishes',
-    'flies',
-    'fly',
-    'c elegens',
-    'c. elegens',
-    'mollusk',
-    'worm',
-    'worms',
-    'fruit fly',
-    'fruit flies',
-    'editorial',
-    'biography',
-    'clam',
-    'silica',
-    'flatworm',
-    'mixture',
-    'nonmammalian',
-    'trout',
-    'cod',
-    'molluscs',
-    'yolk',
-    'bird',
-    'invertebrate',
-    'invertebrates',
-    'birds',
-    'carp',
-    'chlorophyll',
-    'wastewater',
-    'bass',
-    'jetlag',
-    'catfish',
-    'minnow',
-    'songbird',
-    'mummichog',
-    'medaka',
-    'quail',
-    'dolphin',
-    'tilapia',
-    'mussel',
-    'amphibian',
-    'Daphnia',
-    'toads',
-    'frogs',
-    'frog',
-    'toad',
-    'swordfish',
-    'elliptio',
-    'mussels',
-    'turtles',
-    'crustacean',
-])
+# from xml.etree import ElementTree
+
 
 def get_pubmed_data(article):
     title = article['MedlineCitation']['Article']['ArticleTitle']
@@ -150,17 +95,18 @@ def get_pubmed_data(article):
     chemicals = ','.join(chemicals)
     topics = ','.join(topics)
 
-    #pmid = pmid.decode('ascii', 'ignore')
-    #title = title.decode('ascii', 'ignore')
-    #journal = journal.decode('ascii', 'ignore')
-    #date = date.decode('ascii', 'ignore')
-    #pubtype = pubtype.decode('ascii', 'ignore')
-    #abstract = abstract.decode('ascii', 'ignore')
-    #chemicals = chemicals.decode('ascii', 'ignore')
-    #topics = topics.decode('ascii', 'ignore')
-    #keywords = keywords.encode('ascii', 'ignore')
+    # pmid = pmid.decode('ascii', 'ignore')
+    # title = title.decode('ascii', 'ignore')
+    # journal = journal.decode('ascii', 'ignore')
+    # date = date.decode('ascii', 'ignore')
+    # pubtype = pubtype.decode('ascii', 'ignore')
+    # abstract = abstract.decode('ascii', 'ignore')
+    # chemicals = chemicals.decode('ascii', 'ignore')
+    # topics = topics.decode('ascii', 'ignore')
+    # keywords = keywords.encode('ascii', 'ignore')
 
-    return pmid,title,journal,date,pubtype,abstract,chemicals,topics,keywords
+    return pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords
+
 
 def get_offline_articles_from_csv():
     indir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
@@ -168,7 +114,7 @@ def get_offline_articles_from_csv():
         infilepath = os.path.join(indir, file)
         if not file.endswith('.csv'):
             continue
-        with open(infilepath,'r') as f:
+        with open(infilepath, 'r') as f:
             reader = csv.DictReader(f)
             for line in reader:
                 yield line
@@ -185,9 +131,10 @@ def get_offline_articles():
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
                 yield article
 
+
 def search_offline_csvs():
     path = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
-    with open('offline_pubmed_searched.csv','w') as out_f:
+    with open('offline_pubmed_searched.csv', 'w') as out_f:
         writer = csv.DictWriter(out_f,
                                 ['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms',
                                  'keywords'])
@@ -196,7 +143,7 @@ def search_offline_csvs():
         for file in reversed(sorted(os.listdir(path))):
             if not file.endswith('.csv'):
                 continue
-            with open(os.path.join(path,file),'r') as in_f:
+            with open(os.path.join(path, file), 'r') as in_f:
                 reader = csv.DictReader(in_f)
 
                 for line in reader:
@@ -217,24 +164,25 @@ def search_offline_csvs():
                                 break
                         else:
                             print(pmid)
-                            num+=1
+                            num += 1
                             print(num)
                             writer.writerow(line)
 
 
 def convert_pubmed_to_json():
-    indir='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
-    outdir ='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/asjson'
+    indir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
+    outdir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/asjson'
     for file in reversed(sorted(os.listdir(indir))):
-        infilepath = os.path.join(indir,file)
-        outfilepath = os.path.join(outdir,file).replace('.xml.gz','.json.gz')
+        infilepath = os.path.join(indir, file)
+        outfilepath = os.path.join(outdir, file).replace('.xml.gz', '.json.gz')
         if not file.endswith('.xml.gz'):
             continue
         if os.path.exists(outfilepath):
             continue
-        print("converting",infilepath,'to json',outfilepath)
+        print("converting", infilepath, 'to json', outfilepath)
         with gzip.open(infilepath, 'r') as in_f, gzip.open(outfilepath, 'w') as out_f:
-            json.dump(xmltodict.parse(in_f),out_f)
+            json.dump(xmltodict.parse(in_f), out_f)
+
 
 def offline_json_search():
     indir = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/asjson'
@@ -242,8 +190,8 @@ def offline_json_search():
         infilepath = os.path.join(indir, file)
         if not infilepath.endswith('.json.gz'):
             continue
-        print('scanning',file)
-        with gzip.open(infilepath,'rb') as in_f:
+        print('scanning', file)
+        with gzip.open(infilepath, 'rb') as in_f:
             parsed = json.loads(in_f.read())
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
 
@@ -259,12 +207,11 @@ def offline_json_search():
                             if 'ArticleIdList' in ref:
                                 if 'ArticleId' in ref['ArticleIdList']:
                                     ids = ref['ArticleIdList']['ArticleId']
-                                    if not isinstance(ids,list):
+                                    if not isinstance(ids, list):
                                         ids = [ids]
                                     for id in ids:
                                         if id['@IdType'] == 'pubmed':
                                             cited_pmids.add(id['#text'])
-
 
                 searchable = title + abstract + chemicals + keywords + topics
                 searchable = searchable.decode('ascii')
@@ -277,20 +224,19 @@ def offline_json_search():
                         print(cited_pmids)
 
 
-
 def offline_search():
-    path='/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
+    path = '/Users/forrest/pubmed/ftp.ncbi.nlm.nih.gov/pubmed/baseline'
     print(sorted(os.listdir(path)))
     for file in reversed(sorted(os.listdir(path))):
-        inpath = os.path.join(path,file)
-        outpath = inpath.replace('.xml.gz','.csv')
+        inpath = os.path.join(path, file)
+        outpath = inpath.replace('.xml.gz', '.csv')
         if not file.endswith('.xml.gz'):
             continue
         if os.path.exists(outpath):
             continue
-        with gzip.open(inpath,'r') as in_f, open(outpath, 'w') as out_f:
+        with gzip.open(inpath, 'r') as in_f, open(outpath, 'w') as out_f:
             out = []
-            print("parsing",file)
+            print("parsing", file)
             parsed = xmltodict.parse(in_f)
 
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
@@ -298,7 +244,7 @@ def offline_search():
                 journal = article['MedlineCitation']['Article']['Journal']['Title']
                 try:
                     abstract = article['MedlineCitation']['Article']['Abstract']['AbstractText']
-                    if not isinstance(abstract,str):
+                    if not isinstance(abstract, str):
                         print()
                     if abstract is None:
                         abstract = ''
@@ -323,7 +269,7 @@ def offline_search():
                 date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
                 try:
                     topics = article['MedlineCitation']['MeshHeadingList']['MeshHeading']
-                    if isinstance(topics,dict):
+                    if isinstance(topics, dict):
                         topics = [topics]
                     topics = ','.join(topic['DescriptorName']['#text'].strip() for topic in topics)
                 except:
@@ -335,40 +281,40 @@ def offline_search():
                     keywords = ''
                 try:
                     publication_type = article['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']
-                    if isinstance(publication_type,dict):
+                    if isinstance(publication_type, dict):
                         publication_type = [publication_type]
                     pubtype = ','.join([t['#text'] for t in publication_type])
                 except:
                     pubtype = ''
-                #print(chemicals,topics,keywords)
-                pmid = pmid.encode('ascii','ignore')
+                # print(chemicals,topics,keywords)
+                pmid = pmid.encode('ascii', 'ignore')
                 try:
-                    title = title.encode('ascii','ignore')
+                    title = title.encode('ascii', 'ignore')
                 except:
                     title = ''
-                journal = journal.encode('ascii','ignore')
-                date = date.encode('ascii','ignore')
-                pubtype = pubtype.encode('ascii','ignore')
+                journal = journal.encode('ascii', 'ignore')
+                date = date.encode('ascii', 'ignore')
+                pubtype = pubtype.encode('ascii', 'ignore')
                 try:
-                    #todo: looks like some abstracts eist
-                    abstract = abstract.encode('ascii','ignore')
+                    # todo: looks like some abstracts eist
+                    abstract = abstract.encode('ascii', 'ignore')
                 except:
                     abstract = ''
-                chemicals = chemicals.encode('ascii','ignore')
-                topics = topics.encode('ascii','ignore')
-                keywords = keywords.encode('ascii','ignore')
+                chemicals = chemicals.encode('ascii', 'ignore')
+                topics = topics.encode('ascii', 'ignore')
+                keywords = keywords.encode('ascii', 'ignore')
                 out.append({'pmid': pmid, 'title': title, 'journal': journal, 'date': date, 'pubtype': pubtype,
                             'abstract': abstract, 'chemicals': chemicals, 'meshterms': topics,
                             'keywords': keywords})
                 if 'endocrine' in abstract and 'disrupt' in abstract:
                     print(pmid)
-            writer = csv.DictWriter(out_f,['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms','keywords'])
+            writer = csv.DictWriter(out_f, ['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals',
+                                            'meshterms', 'keywords'])
             writer.writeheader()
             writer.writerows(out)
 
 
 def cas_to_cid():
-
     import easy_entrez
     from raw_data import ALL_CHEMS_CAS
     from easy_entrez.parsing import xml_to_string
@@ -384,7 +330,7 @@ def cas_to_cid():
     for cas in ALL_CHEMS_CAS:
         try:
             time.sleep(.5)
-            chem = entrez_api.search(cas.replace('CAS:',''), max_results = 10, database='pccompound')
+            chem = entrez_api.search(cas.replace('CAS:', ''), max_results=10, database='pccompound')
             cid = chem.data['esearchresult']['idlist']
             if len(cid) == 0:
                 leftover_cas.add(cas)
@@ -392,18 +338,19 @@ def cas_to_cid():
                 all_cids.update(cid)
             print(all_cids)
         except:
-            print("failed during",cas)
+            print("failed during", cas)
     print("all cids", all_cids)
     print("leftover cids", leftover_cas)
+
 
 def find_lit2():
     import easy_entrez
     from easy_entrez.parsing import xml_to_string
     import xmltodict
-    entrez_api = easy_entrez.EntrezAPI('endoscreen','verditelabs@gmail.com',return_type='json')
+    entrez_api = easy_entrez.EntrezAPI('endoscreen', 'verditelabs@gmail.com', return_type='json')
     search_term = ''
     res = entrez_api.search(search_term, max_results=99999, database='pubmed')
-    print("found this many articles",len(res.data['esearchresult']['idlist']))
+    print("found this many articles", len(res.data['esearchresult']['idlist']))
     fetched = entrez_api.fetch(res.data['esearchresult']['idlist'], max_results=1000, database='pubmed')
     parsed = xmltodict.parse(xml_to_string(fetched.data))
 
@@ -426,23 +373,24 @@ def find_literature():
     with open('all_common_names.txt', 'r') as f:
         for line in f:
             name = line.strip()
-            #names are crazy, let's keep to more common stuff
+            # names are crazy, let's keep to more common stuff
             if '(' in name or ',' in name:
                 continue
             time.sleep(1)
             res = entrez_api.search(name + ' AND endocrine', max_results=100, database='pubmed')
             if res.data['esearchresult']['count'] == '0':
                 continue
-            #summary = entrez_api.summarize(res.data['esearchresult']['idlist'], max_results = 100)
-            fetched = entrez_api.fetch(res.data['esearchresult']['idlist'], max_results = 100, database='pubmed')
+            # summary = entrez_api.summarize(res.data['esearchresult']['idlist'], max_results = 100)
+            fetched = entrez_api.fetch(res.data['esearchresult']['idlist'], max_results=100, database='pubmed')
             parsed = xmltodict.parse(xml_to_string(fetched.data))
-            print(name,"got",len(parsed['PubmedArticleSet']['PubmedArticle']),'hits')
+            print(name, "got", len(parsed['PubmedArticleSet']['PubmedArticle']), 'hits')
             fetched_out[name] = parsed['PubmedArticleSet']['PubmedArticle']
     import json
     with open('name_to_pmids_summary.json', 'w') as f:
         f.write(json.dumps(out))
-    with open('name_to_fetched_data.json','w') as f:
-        json.dump(fetched_out,f)
+    with open('name_to_fetched_data.json', 'w') as f:
+        json.dump(fetched_out, f)
+
 
 def contains_lowercase(s):
     for c in s:
@@ -450,17 +398,19 @@ def contains_lowercase(s):
             return True
     return False
 
+
 def get_common_names():
     import pubchempy as pcp
     all_names = set()
-    with open('all_cids2.txt','r') as f:
+    with open('all_cids2.txt', 'r') as f:
         for line in f:
-            line = line.strip().replace('CID:','')
+            line = line.strip().replace('CID:', '')
             cid = int(line)
             chem = pcp.Compound.from_cid(cid)
             print(chem.iupac_name)
             all_names.add(chem.iupac_name)
-    print("all names",all_names)
+    print("all names", all_names)
+
 
 def process_manual_search():
     import csv
@@ -468,51 +418,52 @@ def process_manual_search():
     out = list()
 
     journals = defaultdict(lambda: 0)
-    with open('manual_pubmed_search.csv','r') as f:
+    with open('manual_pubmed_search.csv', 'r') as f:
         for line in csv.DictReader(f):
             if line['PMID'] in all_pmids:
                 continue
             all_pmids.add(line['PMID'])
             print(line)
-            pmid, title, journal, date = line['PMID'],line['Title'],line['Journal/Book'],line['Create Date']
+            pmid, title, journal, date = line['PMID'], line['Title'], line['Journal/Book'], line['Create Date']
             journals[journal] += 1
-            out.append([pmid,title,journal,date])
+            out.append([pmid, title, journal, date])
 
-    print("num pmids",len(all_pmids))
-    with open('manual_processed_summary.csv','w') as f:
-        fieldnames = ['pmid', 'title','journal','date']
+    print("num pmids", len(all_pmids))
+    with open('manual_processed_summary.csv', 'w') as f:
+        fieldnames = ['pmid', 'title', 'journal', 'date']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for line in out:
-            writer.writerow({'pmid':line[0],'title':line[1],'journal':line[2],'date':line[3]})
-    for k,v in reversed(sorted(journals.items(),key= lambda item: item[1])):
-        print(k,v)
+            writer.writerow({'pmid': line[0], 'title': line[1], 'journal': line[2], 'date': line[3]})
+    for k, v in reversed(sorted(journals.items(), key=lambda item: item[1])):
+        print(k, v)
     print("wrote rows")
-    print("num journals",len(journals))
+    print("num journals", len(journals))
 
 
 def sanitize_synonyms():
     # synonyms be crazy, let's process them some
     banned_terms = [
-        '[', ']', '%','>','=','<',';','{','}' #filter out weird punctuation stuff
-        'CAS','CCRIS','CHEBI','CHEMBL','DSSTox','NCGC','NSC','NCI', # other identifiers?
-        'Caswell','MLS','MFCD','STL','Tox','bmse','EINECS','ENT','ZINC',
-        'UNII','VS-','WLN','BDBM','CCG','CS','_',
-        'British','European','antibiotic','KBio','BPBio','Spectrum',
-        'Prestwick','component','reference','ampule','injectable',
-        'reagent','powder','tested','mg/mL','FEMA','BSPBio','United States','mixture',
-        '(VAN)','(1:1)','/mL','byproduct','EPA','Standard','(TN)','german','indicator',
-        'biological','Commission','Pesticide','RCRA','(R)','TraceCERT','(alpha)','(INN)',
-        '.beta.','.alpha.','diameter','length','elemental','metallic','g/g','/','GRADE',
-        'Nanopowder','Dispersion','Powder','dia','unpurified','#','ACon','Lopac','MEGxp',
-        'Biomo','KBio','(TBB)','Reference','Handbook','Epitope','Rcra'
+        '[', ']', '%', '>', '=', '<', ';', '{', '}'  # filter out weird punctuation stuff
+                                                'CAS', 'CCRIS', 'CHEBI', 'CHEMBL', 'DSSTox', 'NCGC', 'NSC', 'NCI',
+        # other identifiers?
+        'Caswell', 'MLS', 'MFCD', 'STL', 'Tox', 'bmse', 'EINECS', 'ENT', 'ZINC',
+        'UNII', 'VS-', 'WLN', 'BDBM', 'CCG', 'CS', '_',
+        'British', 'European', 'antibiotic', 'KBio', 'BPBio', 'Spectrum',
+        'Prestwick', 'component', 'reference', 'ampule', 'injectable',
+        'reagent', 'powder', 'tested', 'mg/mL', 'FEMA', 'BSPBio', 'United States', 'mixture',
+        '(VAN)', '(1:1)', '/mL', 'byproduct', 'EPA', 'Standard', '(TN)', 'german', 'indicator',
+        'biological', 'Commission', 'Pesticide', 'RCRA', '(R)', 'TraceCERT', '(alpha)', '(INN)',
+        '.beta.', '.alpha.', 'diameter', 'length', 'elemental', 'metallic', 'g/g', '/', 'GRADE',
+        'Nanopowder', 'Dispersion', 'Powder', 'dia', 'unpurified', '#', 'ACon', 'Lopac', 'MEGxp',
+        'Biomo', 'KBio', '(TBB)', 'Reference', 'Handbook', 'Epitope', 'Rcra'
     ]
 
     names = None
     processed_names = dict()
-    with open('cid_synonym_map.json','r') as f:
+    with open('cid_synonym_map.json', 'r') as f:
         names = json.load(f)
-    for k,v in names.items():
+    for k, v in names.items():
         keep = set()
         for synonym in v:
             asdf = [term in synonym for term in banned_terms]
@@ -522,8 +473,8 @@ def sanitize_synonyms():
                 continue
             keep.add(synonym)
         processed_names[k] = sorted(list(keep))
-    with open('processed_synonyms.json','w') as f:
-        json.dump(processed_names,f)
+    with open('processed_synonyms.json', 'w') as f:
+        json.dump(processed_names, f)
 
 
 my_list = ['geeks', 'for', 'geeks', 'like',
@@ -537,7 +488,6 @@ def chunkify(l, n):
         yield l[i:i + n]
 
 
-
 def parse_pubmed():
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
@@ -549,13 +499,13 @@ def parse_pubmed():
     mesh_occurrances = defaultdict(lambda: 0)
     keyword_occurrances = defaultdict(lambda: 0)
     out = list()
-    with open('manual_processed_summary.csv','r') as f:
+    with open('manual_processed_summary.csv', 'r') as f:
         reader = csv.DictReader(f)
         iter = 0
-        for batch in chunkify(list(reader),100):
-            print("num processed",iter)
-            iter+=1
-            if iter>10:
+        for batch in chunkify(list(reader), 100):
+            print("num processed", iter)
+            iter += 1
+            if iter > 10:
                 pass
             time.sleep(.3)
             pmids = [i['pmid'] for i in batch]
@@ -563,38 +513,39 @@ def parse_pubmed():
             parsed = xmltodict.parse(xml_to_string(fetched.data))
             for article in parsed['PubmedArticleSet']['PubmedArticle']:
                 try:
-                    citation  = article['MedlineCitation']
+                    citation = article['MedlineCitation']
 
-                    title     = citation['Article']['ArticleTitle']
-                    journal   = citation['Article']['Journal']['Title']
-                    abstract  = citation['Article']['Abstract']['AbstractText']
+                    title = citation['Article']['ArticleTitle']
+                    journal = citation['Article']['Journal']['Title']
+                    abstract = citation['Article']['Abstract']['AbstractText']
                     chemicals = citation['ChemicalList']['Chemical']
-                    pmid      = citation['PMID']['#text']
+                    pmid = citation['PMID']['#text']
                     meshterms = citation['MeshHeadingList']['MeshHeading']
-                    keywords  = citation['KeywordList']['Keyword']
-                    pubtype   = citation['Article']['PublicationTypeList']['PublicationType']
-                    date      = citation['DateCompleted']
+                    keywords = citation['KeywordList']['Keyword']
+                    pubtype = citation['Article']['PublicationTypeList']['PublicationType']
+                    date = citation['DateCompleted']
 
-                    date      = date['Day'] + '-' + date['Month'] + '-' + date['Year']
+                    date = date['Day'] + '-' + date['Month'] + '-' + date['Year']
                     chemicals = ','.join(t['NameOfSubstance']['#text'] for t in chemicals)
                     meshterms = ','.join(t['DescriptorName']['#text'] for t in meshterms)
-                    keywords  = ','.join(t['#text'] for t in keywords)
-                    pubtype   = ','.join(t['#text'] for t in pubtype)
+                    keywords = ','.join(t['#text'] for t in keywords)
+                    pubtype = ','.join(t['#text'] for t in pubtype)
 
-                    out.append({'pmid':      pmid,
-                                'title':     title,
-                                'journal':   journal,
-                                'date':      date,
-                                'pubtype':   pubtype,
-                                'abstract':  abstract,
+                    out.append({'pmid': pmid,
+                                'title': title,
+                                'journal': journal,
+                                'date': date,
+                                'pubtype': pubtype,
+                                'abstract': abstract,
                                 'chemicals': chemicals,
                                 'meshterms': meshterms,
-                                'keywords':  keywords})
+                                'keywords': keywords})
 
                 except:
                     pass
-    with open('out_summary.csv','w') as f:
-        writer = csv.DictWriter(f,['pmid','title','journal','date','pubtype','abstract','chemicals','meshterms','keywords'])
+    with open('out_summary.csv', 'w') as f:
+        writer = csv.DictWriter(f, ['pmid', 'title', 'journal', 'date', 'pubtype', 'abstract', 'chemicals', 'meshterms',
+                                    'keywords'])
         writer.writeheader()
         writer.writerows(out)
 
@@ -602,72 +553,81 @@ def parse_pubmed():
 def analyze_frequency(s: str):
     import string
     from raw_data import MOST_COMMON_WORDS
-    #returns a filtered word frequency for s
+    # returns a filtered word frequency for s
 
-    #preprocess s
+    # preprocess s
     s = s.lower()
-    #TODO: collapse some punctuated terms, e.g. anti-estrogenic, in-vivo
-    #into single words so that they aren't split into 2 words
+    # TODO: collapse some punctuated terms, e.g. anti-estrogenic, in-vivo
+    # into single words so that they aren't split into 2 words
 
-    #remove punctuation
-    s = s.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
-    #s = s.split()
-    s = filter(lambda x: x not in MOST_COMMON_WORDS,s.split())
+    # remove punctuation
+    s = s.translate(str.maketrans(string.punctuation, ' ' * len(string.punctuation)))
+    # s = s.split()
+    s = filter(lambda x: x not in MOST_COMMON_WORDS, s.split())
     s = filter(lambda x: not x.isnumeric(), s)
-    s = filter(lambda x: len(x)>1, s)
+    s = filter(lambda x: len(x) > 1, s)
     freq = defaultdict(lambda: 0)
     for word in s:
-        #print(word)
+        # print(word)
         freq[word] += 1
     return freq
 
+
 def do_pubmed_freq_analysis():
-    with open('deduct_word_scores.json','r') as f:
+    from raw_data import EXCLUDE_TERMS
+    with open('deduct_word_scores.json', 'r') as f:
         SCORES = json.load(f)
     ALL_SCORES = dict()
     out = list()
 
     num = 0
     for article in get_offline_articles_from_csv():
-        num+=1
-        #if num > 100000:
+        num += 1
+        # if num > 100000:
         #    break
-    #for article in get_offline_articles():
-        #pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
-        #searchable = ' '.join(get_pubmed_data(article))
+        # for article in get_offline_articles():
+        # pmid, title, journal, date, pubtype, abstract, chemicals, topics, keywords = get_pubmed_data(article)
+        # searchable = ' '.join(get_pubmed_data(article))
         pmid = article['pmid']
         if len(article['abstract']) < 100:
             continue
         searchable = ' '.join(article.values())
-        freq = analyze_frequency(searchable)
+        #freq = analyze_frequency(searchable)
         score = 0
-        num_words = 0
-        for k,v in freq.items():
-            num_words += v
-            score += SCORES.get(k,0) * v
-        score /= num_words
+        num_words = len(searchable.split())
+        for k, v in freq.items():
+            if k in HIGH_SCORE_TERMS:
+                score += v
+            elif k in LOW_SCORE_TERMS:
+                score -= v*2
+            elif k in EXCLUDE_TERMS:
+                score *= .75
         if 'endocrine' in searchable and 'disrupt' in searchable:
             score *= 2
-        if any(t in searchable for t in exclusion_list):
-            score *= 0.5
         ALL_SCORES[pmid] = score
-        if num%10000 == 0:
+        if num % 10000 == 0:
             print(num)
-        #print(pmid,score)
-        #todo: figure out better threshold
-        if score > 9:
+
+        # todo: figure out better threshold
+        if score > 30:
+            freq = list(reversed(sorted(freq.items(),key=lambda x: x[1])))
+            print(pmid, score, )
+            #for f in freq:
+            #    if f[1] > 1:
+            #        print (f)
             article['score'] = score
             out.append(article)
     with open('pubmed_freq_scores.csv', 'w') as f:
-        columns = ['pmid', 'score', 'title','date', 'journal',  'pubtype', 'abstract', 'chemicals', 'topics', 'keywords','meshterms']
+        columns = ['pmid', 'score', 'title', 'date', 'journal', 'pubtype', 'abstract', 'chemicals', 'topics',
+                   'keywords', 'meshterms']
         writer = csv.DictWriter(f, columns)
         writer.writeheader()
-        out = reversed(sorted(out,key=lambda x:x['score']))
+        out = reversed(sorted(out, key=lambda x: x['score']))
         writer.writerows(out)
 
 
 def gen_deduct_freq_analysis():
-    from raw_data import ALL_PAPERS
+    from raw_data import ALL_PAPERS, MOST_COMMON_WORDS, HIGH_SCORE_TERMS, LOW_SCORE_TERMS,EXCLUDE_TERMS
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
         'contact@endoscreen.orgm',
@@ -675,35 +635,43 @@ def gen_deduct_freq_analysis():
         return_type='json'
     )
 
-    fetched = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[:9999]], max_results=100, database='pubmed')
-    fetched2 = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[9999:]], max_results=100, database='pubmed')
+    fetched = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[:9999]], max_results=200, database='pubmed')
+    fetched2 = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[9999:]], max_results=200, database='pubmed')
 
     parsed = xmltodict.parse(xml_to_string(fetched.data))
     parsed2 = xmltodict.parse(xml_to_string(fetched2.data))
     parsed['PubmedArticleSet']['PubmedArticle'].extend(parsed2['PubmedArticleSet']['PubmedArticle'])
-    #print(parsed)
+    # print(parsed)
     out = defaultdict(lambda: 0)
     for article in parsed['PubmedArticleSet']['PubmedArticle']:
         searchable = ' '.join(get_pubmed_data(article))
         freq = analyze_frequency(searchable)
-        #print(freq)
-        for k,v in freq.items():
+        # print(freq)
+        for k, v in freq.items():
             out[k] += v
     total_words = 0
-    scores = dict()
+    scores = defaultdict(lambda: 0)
     rank = 1
-    for k,v in reversed(sorted(out.items(),key=lambda x:x[1])):
-        total_words+=v
-        scores[k] = (len(out) - rank) / len(out) * len(k)
-        rank += 1
-        #print(k,v)
-    for k,v in sorted(scores.items(),key=lambda x:x[1]):
-        print(k,v)
-    with open('deduct_word_scores.json','w') as f:
-        json.dump(scores,f)
+    for k, v in reversed(sorted(out.items(), key=lambda x: x[1])):
+        total_words += v
+        if k in HIGH_SCORE_TERMS:
+            continue
+            scores[k] += 1
+        elif k in LOW_SCORE_TERMS:
+            continue
+            scores[k] -= 1
+        else:
+            scores[k] += v
+        # rank += 1
+        # print(k,v)
+    for k, v in sorted(scores.items(), key=lambda x: x[1]):
+        print(k)
+    with open('deduct_word_scores.json', 'w') as f:
+        json.dump(scores, f)
 
     print(len(scores))
     print(total_words)
+
 
 from easy_entrez.parsing import xml_to_string
 from raw_data import ALL_PAPERS, ALL_CHEMS_CAS, HIGH_SCORE_TERMS, LOW_SCORE_TERMS
@@ -717,8 +685,11 @@ def listify(l):
     if isinstance(l, list):
         return l
     return [l]
+
+
 def genfreq2():
     pass
+
 
 def get_related(fetched, info):
     pass
@@ -726,10 +697,11 @@ def get_related(fetched, info):
     score = 0
     related = set()
 
-    print(fetched['MedlineCitation']['PMID']['#text'],"score",score,related)
-    #print(fetched.__repr__())
-    #print(fetched.__str__())
+    print(fetched['MedlineCitation']['PMID']['#text'], "score", score, related)
+    # print(fetched.__repr__())
+    # print(fetched.__str__())
     # related
+
 
 def gen_paperinfo():
     api = easy_entrez.EntrezAPI('endoscreen', 'contact@endoscreen.org', return_type='json')
@@ -738,17 +710,17 @@ def gen_paperinfo():
 
     count = 0
     for chunk in chunkify(list(ALL_PAPERS), 100):
-        print("count",count)
-        lst = [p.replace('PMID:','') for p in chunk]
+        print("count", count)
+        lst = [p.replace('PMID:', '') for p in chunk]
         fetched = xmltodict.parse(xml_to_string(api.fetch(lst, max_results=200).data))
-        #todo: investigate why this can fail
-        #assert len(chunk) == len(fetched['PubmedArticleSet']['PubmedArticle'])
+        # todo: investigate why this can fail
+        # assert len(chunk) == len(fetched['PubmedArticleSet']['PubmedArticle'])
         for paper in fetched['PubmedArticleSet']['PubmedArticle']:
             info = dict()
 
             info['ids'] = list()
             for aid in listify(paper['PubmedData']['ArticleIdList']['ArticleId']):
-                info['ids'].append(':'.join([aid['@IdType'],aid['#text']]))
+                info['ids'].append(':'.join([aid['@IdType'], aid['#text']]))
 
             info['pubdate'] = ''
             for date in listify(paper['PubmedData']['History']['PubMedPubDate']):
@@ -769,24 +741,24 @@ def gen_paperinfo():
                 pass
 
             info['title'] = paper['MedlineCitation']['Article']['ArticleTitle']
-            if isinstance(info['title'],dict):
+            if isinstance(info['title'], dict):
                 info['title'] = info['title']['#text']
             info['pubtypes'] = list()
             for pub in listify(paper['MedlineCitation']['Article']['PublicationTypeList']['PublicationType']):
                 info['pubtypes'].append(pub['#text'])
 
-            #todo: get citations and cited by
+            # todo: get citations and cited by
 
             info['journal'] = paper['MedlineCitation']['Article']['Journal']['Title']
 
             if 'Abstract' in paper['MedlineCitation']['Article']:
                 info['abstract'] = paper['MedlineCitation']['Article']['Abstract']['AbstractText']
-                if isinstance(info['abstract'],list):
+                if isinstance(info['abstract'], list):
                     abstract = ''
                     for section in info['abstract']:
                         abstract = abstract + section['@Label'] + " " + section['#text']
                     info['abstract'] = abstract
-                elif isinstance(info['abstract'],dict):
+                elif isinstance(info['abstract'], dict):
                     info['abstract'] = info['abstract']['#text']
                     print()
             else:
@@ -802,7 +774,11 @@ def gen_paperinfo():
             if 'KeywordList' in paper['MedlineCitation']:
                 for keyword in listify(paper['MedlineCitation']['KeywordList']['Keyword']):
                     terms.append(keyword['#text'])
-            info['related'] = terms
+
+            terms = [s.lower() for s in terms]
+            terms = [s.replace(',', '').replace('-', '') for s in terms]
+
+            info['terms'] = list(terms)
 
             papers.append(info)
         count += 100
@@ -810,6 +786,8 @@ def gen_paperinfo():
 
 
 from raw_data import ALL_CHEMS_CID
+
+
 def gen_cheminfo():
     import pubchempy as pcp
     chems = []
@@ -831,7 +809,6 @@ def gen_terms(papers, chems):
     for paper in papers:
         s = paper['title'] + paper['abstract']
 
-
         # todo: make scoring better
         score = 0
         for hi in HIGH_SCORE_TERMS:
@@ -847,33 +824,50 @@ def gen_terms(papers, chems):
 def gen_edcdb():
     if os.path.exists('termsdb.json'):
         with open('termsdb.json', 'r') as f:
-            papers,chems = json.load(f)
+            papers, chems = json.load(f)
     else:
         papers = gen_paperinfo()
         chems = gen_cheminfo()
-        with open('termsdb.json','w') as f:
-            json.dump([papers,chems],f)
+        with open('termsdb.json', 'w') as f:
+            json.dump([papers, chems], f)
 
     terms = gen_terms(papers, chems)
 
 
+def most_common_words():
+    from raw_data import EXCLUDE_TERMS
+    ALL_WORDS = defaultdict(lambda : 0)
 
+    count = 0
+    for article in get_offline_articles_from_csv():
+        count += 1
+        if count%10000==0:
+            print(count)
+        if count > 1000000:
+            break
+        searchable = ' '.join(article.values()).split()
+        for w in searchable:
+            ALL_WORDS[w] += 1
 
+    with open('all_word_freqs.csv', 'w') as f:
+        columns = ['word', 'numoccur']
+        writer = csv.DictWriter(f, columns)
+        writer.writeheader()
+        out = reversed(sorted(ALL_WORDS, key=lambda x: x['score']))
+        writer.writerows(out)
 
-
-
-
-#cas_to_cid()
-#get_common_names()
-#find_literature()
-#sanitize_synonyms()
-#sfind_lit2()
-#process_manual_search()
-#parse_pubmed()
-#offline_search()
-#search_offline_csvs()
-#convert_pubmed_to_json()
-#offline_json_search()
-gen_deduct_freq_analysis()
-#do_pubmed_freq_analysis()
-#gen_edcdb()
+# cas_to_cid()
+# get_common_names()
+# find_literature()
+# sanitize_synonyms()
+# sfind_lit2()
+# process_manual_search()
+# parse_pubmed()
+# offline_search()
+# search_offline_csvs()
+# convert_pubmed_to_json()
+# offline_json_search()
+# gen_deduct_freq_analysis()
+# do_pubmed_freq_analysis()
+# gen_edcdb()
+most_common_words()
