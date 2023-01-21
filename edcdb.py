@@ -1,17 +1,20 @@
+import os
+import json
+
 import flet as ft
 import pandas as pd
 
-# Data Base of Endocrine Disrupting Chemicals / 0xDBEDC
+# Endocrine Disrupting Chemicals DataBase / 0xEDCDB
 # or
 # Now I Know My EDCs
 #
-# DBEDC is
+# EDCDB is
 #   - a database of Endocrine Disrupting Chemicals, their health effects, and supporting scientific literature.
 #   - compiled from multiple published EDC lists as well as systematic (re)search.
 #   - a text-based API that supports plaintext or json formatted queries
 #   - fast, small, usable, relevant
 #
-# DBEDC keys are strings
+# EDCDB keys are strings
 #   [
 #     "cid:2519",
 #     "endocrine disruptor",
@@ -35,7 +38,7 @@ import pandas as pd
 #     ...
 #   ]
 #
-# DBEDC entries are field,value pairs
+# EDCDB entries are field,value pairs
 #   {
 #     'key': 'pmid:29126512',
 #     'title':'What is an endocrine disruptor?',
@@ -45,8 +48,8 @@ import pandas as pd
 #     ...
 #   }
 #
-# DBEDC maps keys to entries
-#   DBEDC['cid:2519'] -> {'key':'cid:2519', 'related':[], 'formula':'C8H10N4O2', 'name':'caffeine'}
+# EDCDB maps keys to entries
+#   EDCDB['cid:2519'] -> {'key':'cid:2519', 'related':[], 'formula':'C8H10N4O2', 'name':'caffeine'}
 #
 # Entries have different sets of fields depending on the Entry type
 #
@@ -56,10 +59,8 @@ import pandas as pd
 # PAPERINFO
 #   {'paper':str, 'related':[str], 'title':str, 'journal':str, 'date':str, 'pubtype':str, 'abstract':str, ...}
 #
-# ENDPOINTINFO
-#   {'endpoint':str, 'related':[str], 'desc':str}
 #
-# DBEDC has 1 main API call and various wrappers
+# EDCDB has 1 main API call and various wrappers
 # fetch(key, field='*')
 #   - returns INFO[field]
 #     fetch("pmid:29126512") ->
@@ -78,7 +79,6 @@ import pandas as pd
 # query(key) -> fetch(key, field='related')
 # chems(keys, field='*) -> fetch(key, field) for key in keys if key in query('ALLCHEMS')
 # papers(keys, field='*) -> fetch(key, field) for key in keys if key in query('ALLPAPERS')
-# endpoints(keys, field='*) -> fetch(key, field) for key in keys if key in query('ALLENDPOINTS')
 #
 # How Do I...?
 #   - get all deduct 2 chems?
@@ -96,33 +96,42 @@ import pandas as pd
 #     ends = endpoints(edc['related'], field='desc')
 #     lit = papers(edc['related'],field=['key','title'])
 #
-#     print(f"DBEDC detected {name} ")
+#     print(f"EDCDB detected {name} ")
 #     print(f"{name} is associated with:")
 #     [print(f"  {end}" for end in ends]
 #     print("You can learn more in these papers")
 #     [print(f"  {paper}") for paper in lit]
 #
-# DB
-#
-#
 #
 class NowIKnowMyEDCs:
     def __init__(self):
-        self.db = {
-            'term': dict(),
-        }
-    def _dbget(self, key, fmt):
-        if fmt == 'str':
-            prefix, term = key.split(':')
-            prefix = prefix if prefix else 'term'
-            return self.db[prefix][term]
+        if os.path.exists('termsdb.json'):
+            with open('termsdb.json', 'r') as f:
+                self.papers, self.chems = json.load(f)
+                print()
+        else:
+            raise
 
-    def fetch(self, key, fmt='str'):
-        return self._dbget(key, fmt)
-    def search(self, key, fmt='str'):
-        return self._dbget(key, fmt)
+    def _dbget(self, key, field, fmt):
+        #todo: support fmt
+        prefix, term = key.split(':')
+        if prefix == 'cid': #todo: support other chem identifiers
+            for chem in self.chems:
+                if chem['cid'] == term:
+                    ret= chem
+        elif prefix == 'pubmed':
+            for paper in self.papers:
+                if key in paper['ids']:
+                    ret= paper
+        else:
+            raise #todo: support more stuff
+        if field == '*':
+            return ret
+        else:
+            raise #todo: support this
 
-
+    def fetch(self, key, field='*', fmt='json'):
+        return self._dbget(key, field, fmt)
 
 
 def main(page):
@@ -140,4 +149,5 @@ def main(page):
     page.add(txt_name, ft.ElevatedButton("Say hello!", on_click=btn_click))
 
 
+edcs = NowIKnowMyEDCs()
 ft.app(target=main)

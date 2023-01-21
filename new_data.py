@@ -549,7 +549,6 @@ def parse_pubmed():
         writer.writeheader()
         writer.writerows(out)
 
-
 def analyze_frequency(s: str):
     import string
     from raw_data import MOST_COMMON_WORDS
@@ -574,13 +573,14 @@ def analyze_frequency(s: str):
 
 
 def do_pubmed_freq_analysis():
-    from raw_data import EXCLUDE_TERMS
-    with open('deduct_word_scores.json', 'r') as f:
-        SCORES = json.load(f)
-    ALL_SCORES = dict()
+    with open('badwords.txt','r') as f:
+        words = f.readlines()
+        WORDS = {w.strip() for w in words}
+
     out = list()
 
     num = 0
+    articles = 0
     for article in get_offline_articles_from_csv():
         num += 1
         # if num > 100000:
@@ -592,24 +592,17 @@ def do_pubmed_freq_analysis():
         if len(article['abstract']) < 100:
             continue
         searchable = ' '.join(article.values())
-        #freq = analyze_frequency(searchable)
-        score = 0
-        num_words = len(searchable.split())
-        for k, v in freq.items():
-            if k in HIGH_SCORE_TERMS:
-                score += v
-            elif k in LOW_SCORE_TERMS:
-                score -= v*2
-            elif k in EXCLUDE_TERMS:
-                score *= .75
-        if 'endocrine' in searchable and 'disrupt' in searchable:
-            score *= 2
-        ALL_SCORES[pmid] = score
-        if num % 10000 == 0:
-            print(num)
+        searchable = searchable.lower()
 
-        # todo: figure out better threshold
-        if score > 30:
+        score = 0
+        if ('endocrine' in searchable and 'disrupt' in searchable):
+            freq = analyze_frequency(searchable)
+            for k, v in freq.items():
+                if k in searchable:
+                    score -= v
+
+            articles += 1
+            print(articles)
             freq = list(reversed(sorted(freq.items(),key=lambda x: x[1])))
             print(pmid, score, )
             #for f in freq:
@@ -628,6 +621,7 @@ def do_pubmed_freq_analysis():
 
 def gen_deduct_freq_analysis():
     from raw_data import ALL_PAPERS, MOST_COMMON_WORDS, HIGH_SCORE_TERMS, LOW_SCORE_TERMS,EXCLUDE_TERMS
+    from scratch_19 import DEDUCT_FINAL_PAPERS
     entrez_api = easy_entrez.EntrezAPI(
         'endoscreen',
         'contact@endoscreen.orgm',
@@ -635,42 +629,29 @@ def gen_deduct_freq_analysis():
         return_type='json'
     )
 
-    fetched = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[:9999]], max_results=200, database='pubmed')
-    fetched2 = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[9999:]], max_results=200, database='pubmed')
+    ALL_PAPERS = ALL_PAPERS.difference(DEDUCT_FINAL_PAPERS)
+
+    #fetched = entrez_api.fetch([str(p) for p in list(DEDUCT_FINAL_PAPERS)], max_results=4000, database='pubmed')
+    fetched = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[:9999]], max_results=9999, database='pubmed')
+    fetched2 = entrez_api.fetch([str(p) for p in list(ALL_PAPERS)[9999:]], max_results=9999, database='pubmed')
 
     parsed = xmltodict.parse(xml_to_string(fetched.data))
     parsed2 = xmltodict.parse(xml_to_string(fetched2.data))
     parsed['PubmedArticleSet']['PubmedArticle'].extend(parsed2['PubmedArticleSet']['PubmedArticle'])
     # print(parsed)
     out = defaultdict(lambda: 0)
+    num_words = 0
     for article in parsed['PubmedArticleSet']['PubmedArticle']:
         searchable = ' '.join(get_pubmed_data(article))
+        num_words += len(searchable.split())
         freq = analyze_frequency(searchable)
         # print(freq)
         for k, v in freq.items():
             out[k] += v
-    total_words = 0
-    scores = defaultdict(lambda: 0)
-    rank = 1
-    for k, v in reversed(sorted(out.items(), key=lambda x: x[1])):
-        total_words += v
-        if k in HIGH_SCORE_TERMS:
-            continue
-            scores[k] += 1
-        elif k in LOW_SCORE_TERMS:
-            continue
-            scores[k] -= 1
-        else:
-            scores[k] += v
-        # rank += 1
-        # print(k,v)
-    for k, v in sorted(scores.items(), key=lambda x: x[1]):
-        print(k)
     with open('deduct_word_scores.json', 'w') as f:
-        json.dump(scores, f)
-
-    print(len(scores))
-    print(total_words)
+        json.dump(out, f)
+    for k,w in reversed(sorted(out.items(), key=lambda x: x[1])):
+        print(k)
 
 
 from easy_entrez.parsing import xml_to_string
@@ -704,15 +685,27 @@ def get_related(fetched, info):
 
 
 def gen_paperinfo():
-    api = easy_entrez.EntrezAPI('endoscreen', 'contact@endoscreen.org', return_type='json')
+    import os
+    api = easy_entrez.EntrezAPI('endoscreen', 'contact@endoscreen.org', return_type='json', api_key=os.environ['NCBI_API_KEY'])
 
     papers = list()
 
     count = 0
-    for chunk in chunkify(list(ALL_PAPERS), 100):
+    for chunk in chunkify(list(ALL_PAPERS), 50):
+        time.sleep(1)
         print("count", count)
         lst = [p.replace('PMID:', '') for p in chunk]
-        fetched = xmltodict.parse(xml_to_string(api.fetch(lst, max_results=200).data))
+        try:
+            fetched = xmltodict.parse(xml_to_string(api.fetch(lst, max_results=100).data))
+            while 'PubmedArticleSet' not in fetched:
+                print("trying again...")
+                fetched = xmltodict.parse(xml_to_string(api.fetch(lst, max_results=100).data))
+        except:
+            fetched = xmltodict.parse(xml_to_string(api.fetch(lst, max_results=100).data))
+            while 'PubmedArticleSet' not in fetched:
+                print("trying again...")
+                fetched = xmltodict.parse(xml_to_string(api.fetch(lst, max_results=100).data))
+
         # todo: investigate why this can fail
         # assert len(chunk) == len(fetched['PubmedArticleSet']['PubmedArticle'])
         for paper in fetched['PubmedArticleSet']['PubmedArticle']:
@@ -760,7 +753,6 @@ def gen_paperinfo():
                     info['abstract'] = abstract
                 elif isinstance(info['abstract'], dict):
                     info['abstract'] = info['abstract']['#text']
-                    print()
             else:
                 info['abstract'] = ''
 
@@ -778,10 +770,10 @@ def gen_paperinfo():
             terms = [s.lower() for s in terms]
             terms = [s.replace(',', '').replace('-', '') for s in terms]
 
-            info['terms'] = list(terms)
+            info['related'] = list(terms)
 
             papers.append(info)
-        count += 100
+        count += len(chunk)
     return papers
 
 
@@ -792,34 +784,45 @@ def gen_cheminfo():
     import pubchempy as pcp
     chems = []
     for cid in ALL_CHEMS_CID:
-        info = dict()
-        chem = pcp.Compound.from_cid(cid)
-        info['cid'] = str(chem.cid)
-        info['name'] = chem.iupac_name
-        info['synonyms'] = chem.synonyms
-        info['formula'] = chem.molecular_formula
-        chems.append(info)
-        print(info)
+        try:
+            info = dict()
+            chem = pcp.Compound.from_cid(cid)
+            info['cid'] = str(chem.cid)
+            info['name'] = chem.iupac_name
+            info['synonyms'] = [s.lower() for s in chem.synonyms]
+            info['formula'] = chem.molecular_formula
+            info['related'] = [] #TODO
+            chems.append(info)
+            print(info)
+        except:
+            #???
+            pass
+
     return chems
 
 
 def gen_terms(papers, chems):
+    import string
     related = set()
 
     for paper in papers:
+        print(paper['ids'][0])
         s = paper['title'] + paper['abstract']
-
-        # todo: make scoring better
+        freq = analyze_frequency(s)
+        # todo: make this better
         score = 0
-        for hi in HIGH_SCORE_TERMS:
-            if hi in s:
-                related.add(hi)
-                score += 1
-        for lo in LOW_SCORE_TERMS:
-            if lo in s:
-                score -= 1
-        print(score)
+        terms = set(freq.keys()).intersection(HIGH_SCORE_TERMS)
+        paper['related'].extend(terms)
 
+        s = s.lower()
+        s = s.translate(str.maketrans(string.punctuation, ' ' * len(string.punctuation)))
+
+        for chem in chems:
+            if (overlap := set(chem['synonyms']).intersection(set(s.split()))):
+                print("got a paper <> chem match",overlap)
+                chem['related'].extend(overlap)
+                paper['related'].extend(set(paper['related']).intersection(overlap))
+            #print(chem)
 
 def gen_edcdb():
     if os.path.exists('termsdb.json'):
@@ -828,33 +831,58 @@ def gen_edcdb():
     else:
         papers = gen_paperinfo()
         chems = gen_cheminfo()
+        gen_terms(papers, chems)
         with open('termsdb.json', 'w') as f:
             json.dump([papers, chems], f)
+    with open('edcdb_papers.csv', 'w') as f:
+        writer = csv.DictWriter(f, ['ids','pubdate','authors','title','pubtypes','journal','abstract','related'])
+        writer.writerows(papers)
+        print()
+    with open('edcdb_chems.csv', 'w') as f:
+        writer = csv.DictWriter(f, ['cid','name','synonyms','formula','related'])
+        writer.writerows(chems)
+        print()
 
-    terms = gen_terms(papers, chems)
 
 
 def most_common_words():
     from raw_data import EXCLUDE_TERMS
     ALL_WORDS = defaultdict(lambda : 0)
+    FILTERED_WORDS = defaultdict(lambda : 0)
 
     count = 0
     for article in get_offline_articles_from_csv():
         count += 1
         if count%10000==0:
             print(count)
-        if count > 1000000:
+        if count > 100000:
             break
-        searchable = ' '.join(article.values()).split()
-        for w in searchable:
+        searchable = ' '.join(article.values())
+        for w in searchable.split():
             ALL_WORDS[w] += 1
+        filtered = analyze_frequency(searchable)
+        for k,v in filtered.items():
+            FILTERED_WORDS[k] += v
+            #print(k,v)
+
 
     with open('all_word_freqs.csv', 'w') as f:
         columns = ['word', 'numoccur']
         writer = csv.DictWriter(f, columns)
         writer.writeheader()
-        out = reversed(sorted(ALL_WORDS, key=lambda x: x['score']))
-        writer.writerows(out)
+        out = reversed(sorted(ALL_WORDS.items(), key=lambda x: x[1]))
+        for thing in out:
+            writer.writerow({'word': thing[0],'numoccur': thing[1]})
+
+
+    with open('all_word_freqs_filtered.csv', 'w') as f:
+        columns = ['word', 'numoccur']
+        writer = csv.DictWriter(f, columns)
+        writer.writeheader()
+        out = reversed(sorted(FILTERED_WORDS.items(), key=lambda x: x[1]))
+        for thing in out:
+            writer.writerow({'word': thing[0],'numoccur': thing[1]})
+
 
 # cas_to_cid()
 # get_common_names()
@@ -867,7 +895,48 @@ def most_common_words():
 # search_offline_csvs()
 # convert_pubmed_to_json()
 # offline_json_search()
-# gen_deduct_freq_analysis()
-# do_pubmed_freq_analysis()
-# gen_edcdb()
-most_common_words()
+#gen_deduct_freq_analysis()
+#do_pubmed_freq_analysis()
+#gen_edcdb()
+#most_common_words()
+
+#with open('deduct_word_scores.json','r') as f:
+#    all_words = json.load(f)
+#with open('deduct_word_scores_final.json','r') as f:
+#    final_words = json.load(f)
+#diffs = dict()
+#for k,w in final_words.items():
+#    try:
+#        if w > 10:
+#            del all_words[k]
+#    except:
+#        pass
+
+#for k, v in reversed(sorted(all_words.items(), key=lambda item: item[1])):
+#    print(k,v)
+
+
+#print(all_words)
+
+with open('scratch_23.txt','r') as f:
+    gathered_papers = {w.strip() for w in f.readlines()}
+from raw_data import ALL_PAPERS
+from scratch_19 import DEDUCT_FINAL_PAPERS
+papers = {p.replace('PMID:','') for p in ALL_PAPERS}
+print(len(gathered_papers))
+print(len(papers.intersection(gathered_papers))/len(papers))
+print(len(DEDUCT_FINAL_PAPERS.intersection(gathered_papers))/len(DEDUCT_FINAL_PAPERS))
+
+count = 0
+
+with open('pubmed_freq_scores.csv','r') as in_f, open('emily_papers.csv','w') as out_f:
+    reader = csv.DictReader(in_f)
+    writer = csv.DictWriter(out_f,['pmid', 'score', 'title', 'date', 'journal', 'pubtype', 'abstract', 'chemicals', 'topics',
+                   'keywords', 'meshterms'])
+    for line in reader:
+        if line['pmid'] not in papers:
+            writer.writerow(line)
+            count += 1
+            print(line)
+
+print(count)
