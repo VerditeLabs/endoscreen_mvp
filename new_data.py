@@ -825,20 +825,25 @@ def gen_terms(papers, chems):
             #print(chem)
 
 def gen_edcdb():
-    if os.path.exists('termsdb.json'):
-        with open('termsdb.json', 'r') as f:
+    from scratch_19 import DEDUCT_FINAL_PAPERS
+    if os.path.exists('edcdb_flyio/termsdb.json'):
+        with open('edcdb_flyio/termsdb.json', 'r') as f:
             papers, chems = json.load(f)
     else:
         papers = gen_paperinfo()
         chems = gen_cheminfo()
         gen_terms(papers, chems)
-        with open('termsdb.json', 'w') as f:
+        with open('edcdb_flyio/termsdb.json', 'w') as f:
             json.dump([papers, chems], f)
-    with open('edcdb_papers.csv', 'w') as f:
+    with open('edcdb_flyio/edcdb_papers.csv', 'w') as f:
+        ps = []
+        for p in papers:
+            if p['ids'][0].replace('pubmed:','') in DEDUCT_FINAL_PAPERS:
+                ps.append(p)
         writer = csv.DictWriter(f, ['ids','pubdate','authors','title','pubtypes','journal','abstract','related'])
-        writer.writerows(papers)
+        writer.writerows(ps)
         print()
-    with open('edcdb_chems.csv', 'w') as f:
+    with open('edcdb_flyio/edcdb_chems.csv', 'w') as f:
         writer = csv.DictWriter(f, ['cid','name','synonyms','formula','related'])
         writer.writerows(chems)
         print()
@@ -897,7 +902,7 @@ def most_common_words():
 # offline_json_search()
 #gen_deduct_freq_analysis()
 #do_pubmed_freq_analysis()
-#gen_edcdb()
+gen_edcdb()
 #most_common_words()
 
 #with open('deduct_word_scores.json','r') as f:
@@ -918,25 +923,25 @@ def most_common_words():
 
 #print(all_words)
 
-with open('scratch_23.txt','r') as f:
-    gathered_papers = {w.strip() for w in f.readlines()}
-from raw_data import ALL_PAPERS
-from scratch_19 import DEDUCT_FINAL_PAPERS
-papers = {p.replace('PMID:','') for p in ALL_PAPERS}
-print(len(gathered_papers))
-print(len(papers.intersection(gathered_papers))/len(papers))
-print(len(DEDUCT_FINAL_PAPERS.intersection(gathered_papers))/len(DEDUCT_FINAL_PAPERS))
+#with open('scratch_23.txt','r') as f:
+#    gathered_papers = {w.strip() for w in f.readlines()}
+#from raw_data import ALL_PAPERS
+#from scratch_19 import DEDUCT_FINAL_PAPERS
+#papers = {p.replace('PMID:','') for p in ALL_PAPERS}
+#print(len(gathered_papers))
+#print(len(papers.intersection(gathered_papers))/len(papers))
+#print(len(DEDUCT_FINAL_PAPERS.intersection(gathered_papers))/len(DEDUCT_FINAL_PAPERS))
 
-count = 0
+#count = 0
 
-with open('pubmed_freq_scores.csv','r') as in_f, open('emily_papers.csv','w') as out_f:
-    reader = csv.DictReader(in_f)
-    writer = csv.DictWriter(out_f,['pmid', 'score', 'title', 'date', 'journal', 'pubtype', 'abstract', 'chemicals', 'topics',
-                   'keywords', 'meshterms'])
-    for line in reader:
-        if line['pmid'] not in papers:
-            writer.writerow(line)
-            count += 1
-            print(line)
+#with open('pubmed_freq_scores.csv','r') as in_f, open('emily_papers.csv','w') as out_f:
+#    reader = csv.DictReader(in_f)
+#    writer = csv.DictWriter(out_f,['pmid', 'score', 'title', 'date', 'journal', 'pubtype', 'abstract', 'chemicals', 'topics',
+#                   'keywords', 'meshterms'])
+#    for line in reader:
+#        if line['pmid'] not in papers:
+#            writer.writerow(line)
+#            count += 1
+#            print(line)
 
-print(count)
+#print(count)
