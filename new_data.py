@@ -826,14 +826,14 @@ def gen_terms(papers, chems):
 
 def gen_edcdb():
     from scratch_19 import DEDUCT_FINAL_PAPERS
-    if os.path.exists('edcdb_flyio/termsdb.json'):
-        with open('edcdb_flyio/termsdb.json', 'r') as f:
+    if os.path.exists('termsdb.json'):
+        with open('termsdb.json', 'r') as f:
             papers, chems = json.load(f)
     else:
         papers = gen_paperinfo()
         chems = gen_cheminfo()
         gen_terms(papers, chems)
-        with open('edcdb_flyio/termsdb.json', 'w') as f:
+        with open('termsdb.json', 'w') as f:
             json.dump([papers, chems], f)
     with open('edcdb_flyio/edcdb_papers.csv', 'w') as f:
         ps = []

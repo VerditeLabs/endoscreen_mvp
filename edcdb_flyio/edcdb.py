@@ -1,3 +1,4 @@
+import csv
 import os
 import json
 import sys
@@ -131,14 +132,18 @@ def get_size(obj, seen=None):
 
 class NowIKnowMyEDCs:
     def __init__(self):
-        if os.path.exists('termsdb.json'):
-            with open('termsdb.json', 'r') as f:
-                self.papers, self.chems = json.load(f)
-                print(get_size(self.papers))
-                print(get_size(self.chems))
-
-        else:
-            raise
+        with open('./edcdb_papers.csv', 'r') as f:
+            reader = csv.DictReader(f)
+            self.papers = []
+            for line in reader:
+                self.papers.append(line)
+        with open('./edcdb_chems.csv', 'r') as f:
+            reader = csv.DictReader(f)
+            self.chems = []
+            for line in reader:
+                self.chems.append(line)
+            print(get_size(self.papers))
+            print(get_size(self.chems))
 
     def _dbget(self, key, field, fmt):
         #todo: support fmt
@@ -178,9 +183,8 @@ class NowIKnowMyEDCs:
     def fetch(self, key, field='*', fmt='json'):
         return self._dbget(key, field, fmt)
 
-
+edcdb = NowIKnowMyEDCs()
 def main(page):
-    edcdb = NowIKnowMyEDCs()
     def btn_click(e):
         if not txt_name.value:
             txt_name.error_text = "Please enter your search"
@@ -197,8 +201,7 @@ def main(page):
             page.update()
 
     txt_name = ft.TextField(label="Your search")
-
-    page.add(txt_name, ft.ElevatedButton("search!", on_click=btn_click))
+    page.add(txt_name, ft.ElevatedButton(f"search!", on_click=btn_click))
 
 
 ft.app(target=main)
