@@ -108,25 +108,38 @@ class NowIKnowMyEDCs:
         if os.path.exists('termsdb.json'):
             with open('termsdb.json', 'r') as f:
                 self.papers, self.chems = json.load(f)
-                print()
         else:
             raise
 
     def _dbget(self, key, field, fmt):
         #todo: support fmt
         prefix, term = key.split(':')
+        ret = []
         if prefix == 'cid': #todo: support other chem identifiers
             for chem in self.chems:
                 if chem['cid'] == term:
-                    ret= chem
+                    ret.append(chem)
         elif prefix == 'pubmed':
             for paper in self.papers:
                 if key in paper['ids']:
-                    ret= paper
+                    ret.append(paper)
+        elif prefix == 'term':
+            for paper in self.papers:
+                for k,v in paper.items():
+                    if term in v:
+                        ret.append(paper['ids'])
+            for chem in self.chems:
+                for k, v in chem.items():
+                    if v is None:
+                        continue
+                    if term in v:
+                        ret.append(chem['cid'])
         else:
             raise #todo: support more stuff
         if field == '*':
-            return ret
+            if ret:
+                return ret
+            return []
         else:
             raise #todo: support this
 
@@ -135,19 +148,23 @@ class NowIKnowMyEDCs:
 
 
 def main(page):
+    edcdb = NowIKnowMyEDCs()
     def btn_click(e):
         if not txt_name.value:
             txt_name.error_text = "Please enter your search"
             page.update()
         else:
-            name = txt_name.value
-            page.clean()
-            page.add(ft.Text(f"Hello, {name}!"))
+            search = txt_name.value
+            ret = edcdb.fetch(search)
+            lv = ft.ListView(expand=True, spacing=20)
+            for thing in ret:
+                lv.controls.append(ft.Text(f"{thing}"))
+            page.add(lv)
+            page.update()
 
-    txt_name = ft.TextField(label="Your name")
+    txt_name = ft.TextField(label="Your search")
 
-    page.add(txt_name, ft.ElevatedButton("Say hello!", on_click=btn_click))
+    page.add(txt_name, ft.ElevatedButton("search!", on_click=btn_click))
 
 
-edcs = NowIKnowMyEDCs()
 ft.app(target=main)
