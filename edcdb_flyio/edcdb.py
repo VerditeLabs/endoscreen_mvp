@@ -1,8 +1,8 @@
 import os
 import json
+import sys
 
 import flet as ft
-import pandas as pd
 
 # Endocrine Disrupting Chemicals DataBase / 0xEDCDB
 # or
@@ -113,7 +113,10 @@ class NowIKnowMyEDCs:
 
     def _dbget(self, key, field, fmt):
         #todo: support fmt
-        prefix, term = key.split(':')
+        try:
+            prefix, term = key.split(':')
+        except:
+            return []
         ret = []
         if prefix == 'cid': #todo: support other chem identifiers
             for chem in self.chems:
@@ -157,9 +160,11 @@ def main(page):
             search = txt_name.value
             ret = edcdb.fetch(search)
             lv = ft.ListView(expand=True, spacing=20)
-            for thing in ret:
-                lv.controls.append(ft.Text(f"{thing}"))
             page.add(lv)
+            for i, thing in enumerate(ret):
+                lv.controls.append(ft.Text(f"{thing}"))
+                if i % 50 == 0:
+                    page.update()
             page.update()
 
     txt_name = ft.TextField(label="Your search")
