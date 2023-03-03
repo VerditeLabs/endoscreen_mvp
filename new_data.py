@@ -841,10 +841,12 @@ def gen_edcdb():
             if p['ids'][0].replace('pubmed:','') in DEDUCT_FINAL_PAPERS:
                 ps.append(p)
         writer = csv.DictWriter(f, ['ids','pubdate','authors','title','pubtypes','journal','abstract','related'])
+        writer.writeheader()
         writer.writerows(ps)
         print()
     with open('edcdb_flyio/edcdb_chems.csv', 'w') as f:
         writer = csv.DictWriter(f, ['cid','name','synonyms','formula','related'])
+        writer.writeheader()
         writer.writerows(chems)
         print()
 

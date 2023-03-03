@@ -2,8 +2,10 @@ import csv
 import os
 import json
 import sys
-
+import cv2
 import flet as ft
+import pytesseract
+import numpy as np
 
 # Endocrine Disrupting Chemicals DataBase / 0xEDCDB
 # or
@@ -105,6 +107,71 @@ import flet as ft
 #
 #
 
+
+
+# get grayscale image
+def get_grayscale(image):
+    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+
+# noise removal
+def remove_noise(image):
+    return cv2.medianBlur(image, 5)
+
+
+# thresholding
+def thresholding(image):
+    return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+
+# dilation
+def dilate(image):
+    kernel = np.ones((5, 5), np.uint8)
+    return cv2.dilate(image, kernel, iterations=1)
+
+
+# erosion
+def erode(image):
+    kernel = np.ones((5, 5), np.uint8)
+    return cv2.erode(image, kernel, iterations=1)
+
+
+# opening - erosion followed by dilation
+def opening(image):
+    kernel = np.ones((5, 5), np.uint8)
+    return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+
+
+# canny edge detection
+def canny(image):
+    return cv2.Canny(image, 100, 200)
+
+
+# skew correction
+def deskew(image):
+    coords = np.column_stack(np.where(image > 0))
+    angle = cv2.minAreaRect(coords)[-1]
+    if angle < -45:
+        angle = -(90 + angle)
+    else:
+        angle = -angle
+        (h, w) = image.shape[:2]
+        center = (w // 2, h // 2)
+        M = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+        return rotated
+
+
+# template matching
+def match_template(image, template):
+    return cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+
+
+
+
+
+
+
 def get_size(obj, seen=None):
     """Recursively finds size of objects"""
 
@@ -154,7 +221,19 @@ class NowIKnowMyEDCs:
         ret = []
         if prefix == 'cid': #todo: support other chem identifiers
             for chem in self.chems:
+                if chem['cid'] == '16211214':
+                    print()
+                synonyms = chem['synonyms'].split(',') #TODO: redump database with json compliant double quotes
+                synonyms = [s.replace(' ','') for s in synonyms]
+                synonyms = [s.replace("'",'') for s in synonyms]
+                synonyms = [s.replace('"','') for s in synonyms]
+                synonyms = [s.replace('[','') for s in synonyms]
+                synonyms = [s.replace(']','') for s in synonyms]
                 if chem['cid'] == term:
+                    ret.append(chem)
+                if chem['name'] == term:
+                    ret.append(chem)
+                if term in synonyms:
                     ret.append(chem)
         elif prefix == 'pubmed':
             for paper in self.papers:
@@ -202,6 +281,71 @@ def main(page):
 
     txt_name = ft.TextField(label="Your search")
     page.add(txt_name, ft.ElevatedButton(f"search!", on_click=btn_click))
+
+    resulttext = ft.Column(scroll="always")
+
+    def scanocrnow(e):
+        page.snack_bar = ft.SnackBar(
+            ft.Column([
+                ft.Row([
+                    ft.Text("please wait...", size=30, weight="bold"),
+                    ft.ProgressRing()
+                ], alignment="center")
+            ], alignment="center"),
+            bgcolor="green"
+        )
+        page.snack_bar.open = True
+        page.update()
+
+        # AND GET YOU FILE
+        for x in e.files:
+            print(x.path)
+            image = cv2.imread(x.path)
+            gray = get_grayscale(image)
+
+            text = pytesseract.image_to_string(thresholding(gray), lang='eng', config="--psm 12 --oem 3 -c tessedit_char_whitelist=',ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()/-0123456789 '")
+            #pytesseract.image_to_string()
+            #pytesseract.
+            text = text.replace('\n',' ')
+            for word in text.split():
+
+                term = 'cid:' + word.lower()
+                ret = edcdb.fetch(term)
+                if ret and word.lower() == 'borax':
+
+                    print(term,ret[0]['name'])
+                    resulttext.controls.append(ft.Text(term + ':' + ret[0]['name'], weight="bold"))
+
+            #resulttext.controls.append(ft.Text(text, weight="bold"))
+            page.update()
+
+    def copytext(e):
+        # AND COPY TO CLIPBOARD YOU TEXT RESULT
+        with open("output.txt", "r") as file:
+            text = file.read()
+            print(text)
+            page.set_clipboard(text)
+            page.update()
+
+    # CREATE UPLOAD PICK FILE
+    file_picker = ft.FilePicker(on_result=scanocrnow)
+
+    page.overlay.append(file_picker)
+
+    page.add(
+        ft.Column([
+            ft.Text("Ocr image text to text", size=30, weight="bold"),
+            ft.ElevatedButton("Scan Image upload",
+                           bgcolor="blue", color="white",
+                           on_click=lambda e: file_picker.pick_files()
+                           ),
+
+            # AND CREATE COPY ICON FOR COPY TEXT RESULT
+            #ft.IconButton(icon="copy", on_click=copytext),
+            resulttext
+
+        ])
+    )
 
 
 ft.app(target=main)
