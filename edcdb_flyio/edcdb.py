@@ -1,11 +1,9 @@
 import csv
-import os
-import json
 import sys
-import cv2
+#import cv2
 import flet as ft
-import pytesseract
-import numpy as np
+#import pytesseract
+#import numpy as np
 
 # Endocrine Disrupting Chemicals DataBase / 0xEDCDB
 # or
@@ -108,7 +106,7 @@ import numpy as np
 #
 
 
-
+'''
 # get grayscale image
 def get_grayscale(image):
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -165,37 +163,12 @@ def deskew(image):
 # template matching
 def match_template(image, template):
     return cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+'''
 
 
 
 
 
-
-
-def get_size(obj, seen=None):
-    """Recursively finds size of objects"""
-
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-
-    # Important mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
-
-    if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
-    elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
-    elif hasattr(obj, '__iter__') and not isinstance(obj, ( str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
-
-    return size
 
 class NowIKnowMyEDCs:
     def __init__(self):
@@ -262,7 +235,7 @@ class NowIKnowMyEDCs:
     def fetch(self, key, field='*', fmt='json'):
         return self._dbget(key, field, fmt)
 
-edcdb = NowIKnowMyEDCs()
+#edcdb = NowIKnowMyEDCs()
 def main(page):
     def btn_click(e):
         if not txt_name.value:
@@ -282,7 +255,7 @@ def main(page):
     txt_name = ft.TextField(label="Your search")
     page.add(txt_name, ft.ElevatedButton(f"search!", on_click=btn_click))
 
-    resulttext = ft.Column(scroll="always")
+    #resulttext = ft.Column(scroll="always")
 
     def scanocrnow(e):
         page.snack_bar = ft.SnackBar(
@@ -300,13 +273,14 @@ def main(page):
         # AND GET YOU FILE
         for x in e.files:
             print(x.path)
-            image = cv2.imread(x.path)
-            gray = get_grayscale(image)
+            #image = cv2.imread(x.path)
+            #gray = get_grayscale(image)
 
-            text = pytesseract.image_to_string(thresholding(gray), lang='eng', config="--psm 12 --oem 3 -c tessedit_char_whitelist=',ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()/-0123456789 '")
+            #text = pytesseract.image_to_string(thresholding(gray), lang='eng', config="--psm 12 --oem 3 -c tessedit_char_whitelist=',ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()/-0123456789 '")
             #pytesseract.image_to_string()
             #pytesseract.
-            text = text.replace('\n',' ')
+            #text = text.replace('\n',' ')
+            text = "asdf qwer sdfg"
             for word in text.split():
 
                 term = 'cid:' + word.lower()
@@ -328,10 +302,10 @@ def main(page):
             page.update()
 
     # CREATE UPLOAD PICK FILE
-    file_picker = ft.FilePicker(on_result=scanocrnow)
+    #file_picker = ft.FilePicker(on_result=scanocrnow)
 
-    page.overlay.append(file_picker)
-
+    #page.overlay.append(file_picker)
+    '''
     page.add(
         ft.Column([
             ft.Text("Ocr image text to text", size=30, weight="bold"),
@@ -345,7 +319,7 @@ def main(page):
             resulttext
 
         ])
-    )
+    )'''
 
 
 ft.app(target=main)

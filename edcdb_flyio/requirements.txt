@@ -1,3 +1,5 @@
-flet>=0.1.33
-pytesseract
-opencv-python
+flet
+#pytesseract
+#opencv-python
+#numpy
+#pandas
