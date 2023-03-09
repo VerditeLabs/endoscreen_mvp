@@ -8,8 +8,17 @@ from collections import defaultdict
 import easy_entrez
 from easy_entrez.parsing import xml_to_string
 import xmltodict
+import pubchempy as pcp
 
-# from xml.etree import ElementTree
+from raw_data import DEDUCT_FINAL_PAPERS
+
+
+from easy_entrez.parsing import xml_to_string
+from raw_data import ALL_PAPERS, ALL_CHEMS_CAS, HIGH_SCORE_TERMS, LOW_SCORE_TERMS
+import sqlite3
+import easy_entrez
+import pprint
+import json
 
 
 def get_pubmed_data(article):
@@ -654,13 +663,6 @@ def gen_deduct_freq_analysis():
         print(k)
 
 
-from easy_entrez.parsing import xml_to_string
-from raw_data import ALL_PAPERS, ALL_CHEMS_CAS, HIGH_SCORE_TERMS, LOW_SCORE_TERMS
-import sqlite3
-import easy_entrez
-import pprint
-import json
-
 
 def listify(l):
     if isinstance(l, list):
@@ -691,7 +693,7 @@ def gen_paperinfo():
     papers = list()
 
     count = 0
-    for chunk in chunkify(list(ALL_PAPERS), 50):
+    for chunk in chunkify(list(DEDUCT_FINAL_PAPERS), 50):
         time.sleep(1)
         print("count", count)
         lst = [p.replace('PMID:', '') for p in chunk]
@@ -781,7 +783,6 @@ from raw_data import ALL_CHEMS_CID
 
 
 def gen_cheminfo():
-    import pubchempy as pcp
     chems = []
     for cid in ALL_CHEMS_CID:
         try:
@@ -825,7 +826,6 @@ def gen_terms(papers, chems):
             #print(chem)
 
 def gen_edcdb():
-    from scratch_19 import DEDUCT_FINAL_PAPERS
     if os.path.exists('termsdb.json'):
         with open('termsdb.json', 'r') as f:
             papers, chems = json.load(f)
@@ -835,7 +835,7 @@ def gen_edcdb():
         gen_terms(papers, chems)
         with open('termsdb.json', 'w') as f:
             json.dump([papers, chems], f)
-    with open('edcdb_flyio/edcdb_papers.csv', 'w') as f:
+    with open('edcdb_gcp/edcdb_papers.csv', 'w') as f:
         ps = []
         for p in papers:
             if p['ids'][0].replace('pubmed:','') in DEDUCT_FINAL_PAPERS:
@@ -844,7 +844,7 @@ def gen_edcdb():
         writer.writeheader()
         writer.writerows(ps)
         print()
-    with open('edcdb_flyio/edcdb_chems.csv', 'w') as f:
+    with open('edcdb_gcp/edcdb_chems.csv', 'w') as f:
         writer = csv.DictWriter(f, ['cid','name','synonyms','formula','related'])
         writer.writeheader()
         writer.writerows(chems)

@@ -1,5 +1,0 @@
-flet
-#pytesseract
-#opencv-python
-#numpy
-#pandas
