@@ -107,7 +107,7 @@ import io
 #     [print(f"  {paper}") for paper in lit]
 #
 #
-'''
+
 class NowIKnowMyEDCs:
     def __init__(self):
         with open('./edcdb.json', 'r') as f:
@@ -226,11 +226,6 @@ def main(page):
             resulttext
         ])
     )
-'''
-def main(page: ft.Page):
-    t = ft.Text(value="Hello, world!", color="green")
-    page.controls.append(t)
-    page.update()
 
 if __name__ == '__main__':
     ft.app(target=main, host='0.0.0.0', port=8080)
