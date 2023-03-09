@@ -2,9 +2,9 @@ import flet as ft
 import json
 import io
 
-#from google.cloud import vision
+from google.cloud import vision
 
-#client = vision.ImageAnnotatorClient()
+client = vision.ImageAnnotatorClient()
 
 
 
@@ -197,12 +197,12 @@ def main(page):
 
             with io.open(x.path, 'rb') as f:
                 content = f.read()
-            #image = vision.Image(content=content)
-            #response = client.label_detection(image=image)
-            #labels = response.label_annotations
+            image = vision.Image(content=content)
+            response = client.text_detection(image=image)
+            texts = response.text_annotations
 
-            #text = ' '.join(l.description for l in labels)
-            text = 'asdf'
+            text = ' '.join(t.description for t in texts)
+            text = text.replace('\n',' ')
             resulttext.controls.append(ft.Text("detected text: " + text))
 
             #for word in text.split():
