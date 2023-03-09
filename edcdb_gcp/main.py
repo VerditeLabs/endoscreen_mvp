@@ -6,7 +6,7 @@ import io
 
 from google.cloud import vision
 
-if key := 'GOOGLE_API_KEY' in os.environ:
+if key := os.environ.get('GOOGLE_API_KEY'):
     client = vision.ImageAnnotatorClient(client_options={'api_key':key,'quota_project_id':'endoscreen'})
 else:
     client = vision.ImageAnnotatorClient()
